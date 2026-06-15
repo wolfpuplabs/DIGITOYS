@@ -45,6 +45,20 @@
     justify-content:space-between;padding:0 22px calc(env(safe-area-inset-bottom) + 26px);pointer-events:auto}
   .jlbl{position:absolute;left:0;right:0;bottom:-18px;text-align:center;font-family:var(--mono);
     font-size:9px;letter-spacing:.12em;color:var(--muted)}
+  .pedals{display:flex;flex-direction:column;gap:12px}
+  .pedal{width:96px;height:62px;border-radius:18px;border:1px solid var(--stroke);
+    font-family:var(--sans);font-weight:700;font-size:16px;letter-spacing:.04em;cursor:pointer;
+    backdrop-filter:blur(10px);transition:transform .08s,filter .08s;color:#0b0e13}
+  .pedal:active{transform:scale(.94)}
+  .pedal.gas{background:linear-gradient(180deg,#7af0c0,#34e0c4)}
+  .pedal.brake{background:linear-gradient(180deg,#ff8a6a,#ff6b4a)}
+  .pedal.on{filter:brightness(1.25)}
+  .wheel{width:132px;height:132px;border-radius:50%;touch-action:none;cursor:grab;
+    background:radial-gradient(circle at 50% 50%,rgba(20,26,34,.5),rgba(11,14,19,.72));
+    border:1px solid var(--stroke);backdrop-filter:blur(10px);display:grid;place-items:center;
+    will-change:transform}
+  .wheel:active{cursor:grabbing}
+  .wheel svg{width:88%;height:88%;pointer-events:none}
   .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 46px);right:14px;display:none;
     align-items:center;gap:8px;pointer-events:auto}
   .board{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:14px;display:none;
@@ -155,14 +169,24 @@
 
   <div class="topctrl" id="topctrl">
     <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
-    <button class="iconbtn" id="steermode" title="Mode setir">🚗</button>
     <button class="iconbtn" id="mute">🔊</button>
     <button class="iconbtn" id="repark">↺</button>
   </div>
 
   <div class="drivebar" id="drivebar">
-    <div class="joy" id="joyL"><div class="nub" id="nubL"></div><span class="jlbl">MAJU · MUNDUR</span></div>
-    <div class="joy" id="joyR"><div class="nub" id="nubR"></div><span class="jlbl">STEER</span></div>
+    <div class="pedals">
+      <button class="pedal gas" id="gas">GAS</button>
+      <button class="pedal brake" id="brake">REM</button>
+    </div>
+    <div class="wheel" id="wheel" title="Putar untuk belok">
+      <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="#ff6b4a" stroke-width="7" opacity="0.95"/>
+        <circle cx="50" cy="50" r="13" fill="#ff6b4a"/>
+        <rect x="46.5" y="13" width="7" height="26" rx="3" fill="#ff6b4a"/>
+        <rect x="13" y="55" width="30" height="7" rx="3" fill="#ff6b4a" transform="rotate(28 50 50)"/>
+        <rect x="57" y="55" width="30" height="7" rx="3" fill="#ff6b4a" transform="rotate(-28 50 50)"/>
+      </svg>
+    </div>
   </div>
 </div>
 
@@ -191,7 +215,7 @@ const $=id=>document.getElementById(id);
 const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
-const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark'),steerBtn=$('steermode');
+const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),muteBtn=$('mute'),reparkBtn=$('repark');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
 const reloadBtn=$('reload'),exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
@@ -206,7 +230,8 @@ const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0
 
 // health / combat
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
-let steerMode='consistent';   // 'consistent' (default, andal, bisa 360) | 'realistic' (mundur kebalik)
+let wheelAngle=0, wheelDragging=false;   // setir putar
+const WHEEL_MAX=140;                     // derajat putaran maksimum = belok penuh
 const HIT_COOLDOWN=450;     // ms between damage events
 // uploaded model (local only)
 let uploadedGlb=null;       // ArrayBuffer of user .glb
@@ -416,15 +441,7 @@ function initThree(){
   placeBtn.addEventListener('click',onPrimary);
   reparkBtn.addEventListener('click',repark);
   muteBtn.addEventListener('click',toggleMute);
-  steerBtn.addEventListener('click',()=>{
-    steerMode = steerMode==='consistent' ? 'realistic' : 'consistent';
-    steerBtn.textContent = steerMode==='consistent' ? '🚗' : '🏎️';
-    statusT.textContent = steerMode==='consistent'
-      ? 'Setir: Konsisten (kanan=kanan, bisa 360)'
-      : 'Setir: Realistis (mundur kebalik)';
-  });
-  setupJoystick(joyL,nubL,'gas');
-  setupJoystick(joyR,nubR,'steer');
+  setupControls();
   initParticles();
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 }
@@ -547,7 +564,7 @@ async function startDriving(){
 }
 
 function repark(){
-  carPlaced=false; speed=0; steerInput=0; throttleInput=0; resetNub(); calA=null;
+  carPlaced=false; speed=0; resetControls(); calA=null;
   if(isMP){ calib=null; placeBtn.textContent='Set titik A'; }
   if(car)car.visible=false; clearWorld();
   drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
@@ -671,21 +688,34 @@ function updateRemotes(dt){
 }
 
 /* ---------- joysticks (left=steer, right=gas/brake) + mute ---------- */
-function setupJoystick(el,nubEl,mode){
-  const R=48; let active=false,id=null;
-  const set=(cx,cy,rect)=>{
-    let dx=cx-(rect.left+rect.width/2),dy=cy-(rect.top+rect.height/2);
-    const d=Math.hypot(dx,dy); if(d>R){dx*=R/d;dy*=R/d;}
-    if(mode==='steer'){ dy=0; steerInput=Math.max(-1,Math.min(1,dx/R)); }
-    else { dx=0; throttleInput=Math.max(-1,Math.min(1,-dy/R)); }   // up=gas, down=rem/mundur
-    nubEl.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+/* ---------- gas/brake pedals + swipe steering wheel ---------- */
+function setupControls(){
+  // pedals: tahan untuk gas / rem-mundur
+  const refresh=()=>{ throttleInput = gasBtn.classList.contains('on') ? 1 : brakeBtn.classList.contains('on') ? -1 : 0; };
+  const hold=btn=>{
+    btn.addEventListener('pointerdown',e=>{ e.preventDefault(); btn.classList.add('on'); refresh(); });
+    ['pointerup','pointercancel','pointerleave'].forEach(ev=>btn.addEventListener(ev,()=>{ btn.classList.remove('on'); refresh(); }));
   };
-  el.addEventListener('pointerdown',e=>{active=true;id=e.pointerId;el.setPointerCapture(id);set(e.clientX,e.clientY,el.getBoundingClientRect());});
-  el.addEventListener('pointermove',e=>{if(active&&e.pointerId===id)set(e.clientX,e.clientY,el.getBoundingClientRect());});
-  const up=e=>{if(active&&e.pointerId===id){active=false;if(mode==='steer')steerInput=0;else throttleInput=0;nubEl.style.transform='translate(-50%,-50%)';}};
-  el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+  hold(gasBtn); hold(brakeBtn);
+
+  // steering wheel: putar dengan jari (swipe). Lepas -> balik ke tengah.
+  let lastAng=0, id=null;
+  const angle=e=>{ const r=wheelEl.getBoundingClientRect();
+    return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2))*180/Math.PI; };
+  wheelEl.addEventListener('pointerdown',e=>{ wheelDragging=true; id=e.pointerId; wheelEl.setPointerCapture(id); lastAng=angle(e); });
+  wheelEl.addEventListener('pointermove',e=>{ if(!wheelDragging||e.pointerId!==id) return;
+    const a=angle(e); let d=a-lastAng; if(d>180)d-=360; if(d<-180)d+=360; lastAng=a;
+    wheelAngle=Math.max(-WHEEL_MAX,Math.min(WHEEL_MAX,wheelAngle+d)); });
+  const release=e=>{ if(e.pointerId===id){ wheelDragging=false; id=null; } };
+  wheelEl.addEventListener('pointerup',release); wheelEl.addEventListener('pointercancel',release);
 }
-function resetNub(){ nubL.style.transform='translate(-50%,-50%)'; nubR.style.transform='translate(-50%,-50%)'; }
+function updateWheel(dt){
+  if(!wheelDragging){ wheelAngle += (0-wheelAngle)*Math.min(1,dt*10); if(Math.abs(wheelAngle)<0.5) wheelAngle=0; }
+  steerInput = Math.max(-1,Math.min(1, wheelAngle/WHEEL_MAX));
+  wheelEl.style.transform = `rotate(${wheelAngle}deg)`;
+}
+function resetControls(){ wheelAngle=0; steerInput=0; throttleInput=0;
+  gasBtn.classList.remove('on'); brakeBtn.classList.remove('on'); wheelEl.style.transform='rotate(0deg)'; }
 
 /* ---------- ENGINE AUDIO (Web Audio synth, no files) ---------- */
 let audioCtx=null,master=null,osc1=null,osc2=null,sub=null,engGain=null,screechGain=null,muted=false;
@@ -742,7 +772,7 @@ function render(t,frame){
       if(surfaceFound){ surfaceFound=false; dot.className='dot searching'; statusT.textContent='Mencari permukaan…'; placeBtn.disabled=true; } }
   } else if(carPlaced){ reticle.visible=false; }
 
-  if(carPlaced&&car){ driveCar(dt); updateAudio(); }
+  if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); }
   if(isMP&&calib) updateRemotes(dt);
   updateParticles(dt);
   renderer.render(scene,camera);
@@ -754,9 +784,8 @@ function driveCar(dt){
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
   if(Math.abs(speed)<.001) speed=0;
-  // mode setir (tombol pojok kanan atas). Dua-duanya SELALU belok saat jalan.
-  if(steerMode==='realistic'){ heading+=steerInput*speed*TURN_RATE*dt; }        // mundur kebalik (RC asli)
-  else { heading+=steerInput*Math.abs(speed)*TURN_RATE*dt; }                    // konsisten: kanan=kanan, bisa 360
+  // setir putar (car-relative): putar kanan = belok kanan terus (360 oke), kiri = kiri
+  heading+=steerInput*Math.abs(speed)*TURN_RATE*dt;
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds
