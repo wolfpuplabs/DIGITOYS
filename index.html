@@ -155,7 +155,7 @@
 
   <div class="topctrl" id="topctrl">
     <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
-    <button class="iconbtn" id="steermode" title="Mode setir">🚗</button>
+    <button class="iconbtn" id="steermode" title="Mode setir">👁</button>
     <button class="iconbtn" id="mute">🔊</button>
     <button class="iconbtn" id="repark">↺</button>
   </div>
@@ -204,7 +204,7 @@ const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0
 
 // health / combat
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
-let steerMode='consistent';   // 'consistent' | 'realistic' | 'view'  (ganti via tombol)
+let steerMode='view';   // default: ikut layar (paling mirip car game biasa). 'consistent' | 'realistic' | 'view'
 const HIT_COOLDOWN=450;     // ms between damage events
 // uploaded model (local only)
 let uploadedGlb=null;       // ArrayBuffer of user .glb
