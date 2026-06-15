@@ -107,10 +107,10 @@
 <div class="gate" id="gate">
   <div class="kicker">Markerless · WebXR · Multiplayer</div>
   <h1>Same floor.<br><em>Race together.</em></h1>
-  <p>Mode solo langsung jalan. Untuk multiplayer, semua pemain konek ke server yang sama pakai kode room yang sama, lalu kalibrasi 2 titik di lantai yang sama.</p>
+  <p>Mode solo langsung jalan. Untuk multiplayer (gratis), semua pemain isi kode room yang sama lalu "Konek" — orang pertama otomatis jadi host. Setelah masuk AR, kalibrasi 2 titik di lantai yang sama.</p>
 
   <div class="mp">
-    <div class="lbl">Multiplayer (butuh server)</div>
+    <div class="lbl">Multiplayer (gratis · tanpa server)</div>
     <div class="row">
       <input id="pname" placeholder="nama kamu" maxlength="14" autocapitalize="words" autocomplete="off" />
     </div>
@@ -118,7 +118,7 @@
       <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
     </div>
     <div class="row">
-      <button id="connect" class="act">Konek ke server</button>
+      <button id="connect" class="act">Konek room</button>
     </div>
     <div class="st" id="mpst">Status: solo (belum konek)</div>
   </div>
@@ -166,6 +166,7 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -179,9 +180,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* ====== SWITCH MODEL HERE ====== */
 const USE_GLB=false, GLB_URL='rc-car.glb', GLB_SCALE=1.0;
-/* ====== GAME SERVER (server-authoritative) ======
-   null = solo saja (multiplayer mati). Isi dengan WSS server kamu (lihat gameserver/):
-   const SERVER_URL = 'wss://rc.domainmu.com';                                   */
+/* ====== MULTIPLAYER ======
+   null  = GRATIS, tanpa server (P2P PeerJS broker publik; orang pertama jadi host otomatis).
+           Health & skor dihitung per-HP, jadi bisa sedikit beda — oke buat main bareng teman.
+   'wss://...' = server-authoritative (health & skor konsisten; deploy gameserver/ dulu).   */
 const SERVER_URL = null;
 /* =============================== */
 
@@ -216,6 +218,7 @@ const marks=[]; const MAX_MARKS=260; let markGeo=null,markMat=null,markTick=0;
 
 /* multiplayer state */
 let isMP=false, ROOM='', ws=null, myId='', myName='Player', myScore=0;
+let isHost=false, peer=null; const conns={}; const boardData={};   // P2P mode
 let calib=null;            // {origin, ax, ay, az, yaw}
 let calA=null;             // first calibration point
 const remoteCars={};       // id -> {group,target,cur,building}
@@ -235,14 +238,52 @@ checkSupport();
 connectBtn.addEventListener('click',connectServer);
 
 function connectServer(){
-  if(!SERVER_URL){ mpst.innerHTML='Status: <b>SERVER_URL belum diisi</b> di kode (multiplayer mati)'; return; }
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!code){ mpst.innerHTML='Status: <b>isi kode room dulu</b>'; return; }
   myName=(nameIn.value||'').trim().slice(0,14)||'Player';
-  ROOM=code; isMP=true; mpst.textContent='Status: menghubungkan…';
+  ROOM=code; isMP=true;
+  if(SERVER_URL){ connectWS(code); }
+  else if(typeof Peer!=='undefined'){ connectP2P(code); }
+  else { mpst.innerHTML='Status: <b>PeerJS gagal dimuat</b> (cek koneksi)'; isMP=false; }
+}
+
+/* ---------- FREE P2P (PeerJS, no server) ---------- */
+function connectP2P(code){
+  const roomId='rcarena-'+ROOM;
+  mpst.textContent='Status: mencari room…';
+  peer=new Peer(roomId);                                  // coba klaim room = jadi host
+  peer.on('open',()=>{ isHost=true; myId=roomId;
+    mpst.innerHTML='Status: <b style="color:var(--lock)">HOST</b> room "'+code+'" — tunggu pemain'; });
+  peer.on('connection',c=>wireConn(c));                   // host menerima pemain lain
+  peer.on('error',e=>{
+    if(e.type==='unavailable-id'){                        // room sudah ada -> gabung
+      isHost=false; peer=new Peer();
+      peer.on('open',gid=>{ myId=gid; wireConn(peer.connect(roomId,{reliable:false}));
+        mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
+      peer.on('error',err=>{ mpst.innerHTML='Status: <b>'+err.type+'</b> — coba lagi'; });
+    } else { mpst.innerHTML='Status: <b>'+e.type+'</b>'; }
+  });
+}
+function wireConn(c){
+  c.on('open',()=>{ conns[c.peer]=c; });
+  c.on('data',d=>onP2P(d,c));
+  c.on('close',()=>{ delete conns[c.peer]; removeRemote(c.peer); delete boardData[c.peer]; renderBoardP2P(); });
+}
+function onP2P(d,from){
+  if(!d||!d.id) return;
+  if(d.t==='state'){
+    if(d.id!==myId){ applyRemote(d); boardData[d.id]={id:d.id,n:d.n||'Player',score:d.score||0}; renderBoardP2P(); }
+    if(isHost){ for(const pid in conns) if(pid!==from.peer) try{conns[pid].send(d);}catch(e){} }   // relay
+  } else if(d.t==='bye'){ removeRemote(d.id); delete boardData[d.id]; renderBoardP2P(); }
+}
+function p2pBroadcast(msg){ for(const pid in conns) try{conns[pid].send(msg);}catch(e){} }
+function renderBoardP2P(){ renderBoard([{id:myId,n:myName,score:myScore},...Object.values(boardData)]); }
+
+/* ---------- AUTHORITATIVE (WebSocket server) ---------- */
+function connectWS(code){
+  mpst.textContent='Status: menghubungkan…';
   try{ ws=new WebSocket(SERVER_URL); }
   catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; isMP=false; return; }
-
   ws.addEventListener('open',()=>{ ws.send(JSON.stringify({t:'join',room:ROOM,name:myName}));
     mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
   ws.addEventListener('message',ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
@@ -271,9 +312,10 @@ function onSnap(players){
 }
 
 function sendState(){
-  if(!isMP||!ws||ws.readyState!==1||!calib||!carPlaced) return;
-  const s=localToShared(car.position);
-  ws.send(JSON.stringify({t:'state',x:s.x,z:s.z,h:heading-calib.yaw,speed:speed}));
+  if(!isMP||!calib||!carPlaced) return;
+  const s=localToShared(car.position), sh=heading-calib.yaw;
+  if(SERVER_URL){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({t:'state',x:s.x,z:s.z,h:sh,speed})); }
+  else { p2pBroadcast({t:'state',id:myId,n:myName,score:myScore,hp:Math.round(ownHP),x:s.x,z:s.z,h:sh,speed}); }
 }
 
 function renderBoard(players){
@@ -563,6 +605,7 @@ async function applyRemote(d){
     ud.label.userData.redraw(nm,hp); ud.labelText=nm; ud.labelHp=hp;
   }
   rc.group.visible = d.alive!==false;
+  rc.speed = d.speed||0;
   rc.target.x=d.x; rc.target.z=d.z; rc.target.h=d.h;
 }
 function removeRemote(id){ const rc=remoteCars[id]; if(rc){ if(rc.group)scene.remove(rc.group); delete remoteCars[id]; } }
@@ -578,6 +621,9 @@ function addUnderGlow(group,color){
 function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.width=h+'%'; hptxt.textContent=h; }
 function enterDead(){ dead=true; speed=0; statusT.textContent='Hancur! Respawn…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
 function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Balapan'; }
+// local combat (dipakai di mode P2P gratis; di mode WS damage diatur server)
+function localDamage(amt){ if(dead) return; ownHP=Math.max(0,ownHP-amt); updateHpBar(); if(ownHP<=0) localDestroy(); }
+function localDestroy(){ enterDead(); setTimeout(()=>{ if(carPlaced){ ownHP=100; updateHpBar(); exitDead(); } },1500); }
 
 /* ---------- collision particles ---------- */
 const PARTICLES=[]; const PMAX=80; let pGeo=null;
@@ -733,8 +779,9 @@ function driveCar(dt){
       if(Math.abs(speed)>0.1) spark((car.position.x+o.position.x)/2,(car.position.z+o.position.z)/2,0xffae42);
       speed*=-0.3;}
   }
-  // car-vs-car: bounce only (visual). Damage & score decided by the server.
+  // car-vs-car: bounce + (mode P2P) damage & skor lokal. Di mode WS, server yang putuskan.
   if(isMP){
+    const now=performance.now();
     for(const id in remoteCars){
       const g=remoteCars[id].group; if(!g||!g.visible) continue;
       const ox=car.position.x-g.position.x,oz=car.position.z-g.position.z,d=Math.hypot(ox,oz),min=CAR_R*2;
@@ -743,6 +790,12 @@ function driveCar(dt){
         car.position.x=g.position.x+nx*min; car.position.z=g.position.z+nz*min;
         if(Math.abs(speed)>0.1) spark((car.position.x+g.position.x)/2,(car.position.z+g.position.z)/2,0x9fe8ff);
         speed*=-0.45;
+        if(!SERVER_URL && now-lastHitT>HIT_COOLDOWN){
+          lastHitT=now;
+          const rs=remoteCars[id].speed||0;
+          if(Math.abs(speed)>=Math.abs(rs)){ myScore++; renderBoardP2P(); }
+          localDamage(5+Math.abs(speed)*45);
+        }
       }
     }
   }
