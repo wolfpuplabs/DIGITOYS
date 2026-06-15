@@ -155,6 +155,7 @@
 
   <div class="topctrl" id="topctrl">
     <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
+    <button class="iconbtn" id="steermode" title="Mode setir">🚗</button>
     <button class="iconbtn" id="mute">🔊</button>
     <button class="iconbtn" id="repark">↺</button>
   </div>
@@ -188,7 +189,7 @@ const $=id=>document.getElementById(id);
 const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
-const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark');
+const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark'),steerBtn=$('steermode');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
 const reloadBtn=$('reload'),exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
@@ -203,6 +204,7 @@ const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0
 
 // health / combat
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
+let steerMode='consistent';   // 'consistent' | 'realistic' | 'view'  (ganti via tombol)
 const HIT_COOLDOWN=450;     // ms between damage events
 // uploaded model (local only)
 let uploadedGlb=null;       // ArrayBuffer of user .glb
@@ -372,6 +374,14 @@ function initThree(){
   placeBtn.addEventListener('click',onPrimary);
   reparkBtn.addEventListener('click',repark);
   muteBtn.addEventListener('click',toggleMute);
+  steerBtn.addEventListener('click',()=>{
+    steerMode = steerMode==='consistent' ? 'realistic' : steerMode==='realistic' ? 'view' : 'consistent';
+    const g = {consistent:'🚗',realistic:'🏎️',view:'👁'}[steerMode];
+    const t = {consistent:'Setir: Konsisten (kanan=kanan, bisa 360)',
+               realistic:'Setir: Realistis (mundur kebalik)',
+               view:'Setir: Ikut Layar'}[steerMode];
+    steerBtn.textContent=g; statusT.textContent=t;
+  });
   setupJoystick(joyL,nubL,'gas');
   setupJoystick(joyR,nubR,'steer');
   initParticles();
@@ -699,8 +709,18 @@ function driveCar(dt){
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
   if(Math.abs(speed)<.001) speed=0;
-  // RC realistis: pakai speed bertanda -> saat mundur setir otomatis kebalik (seperti mobil parkir mundur)
-  heading+=steerInput*speed*TURN_RATE*dt;
+  // mode setir (bisa diganti via tombol di pojok kanan atas):
+  if(steerMode==='view'){            // ikut layar: kanan = ke kanan layar (maju/mundur), 360 ke arahmu terbatas
+    let eff=steerInput;
+    const camDir=new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y=0;
+    const vel=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading)).multiplyScalar(speed);
+    if(vel.dot(camDir)<0) eff=-steerInput;
+    heading+=eff*Math.abs(speed)*TURN_RATE*dt;
+  } else if(steerMode==='realistic'){ // RC realistis: mundur otomatis kebalik (maju & mundur berlawanan)
+    heading+=steerInput*speed*TURN_RATE*dt;
+  } else {                            // konsisten: kanan=belok kanan, maju & mundur sama, bisa 360 penuh
+    heading+=steerInput*Math.abs(speed)*TURN_RATE*dt;
+  }
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds
