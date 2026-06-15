@@ -88,6 +88,9 @@
   <div class="mp">
     <div class="lbl">Multiplayer (opsional)</div>
     <div class="row">
+      <input id="pname" placeholder="nama kamu" maxlength="14" autocapitalize="words" autocomplete="off" />
+    </div>
+    <div class="row">
       <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
     </div>
     <div class="row">
@@ -138,6 +141,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* ====== SWITCH MODEL HERE ====== */
 const USE_GLB=false, GLB_URL='rc-car.glb', GLB_SCALE=1.0;
+/* ====== PEERJS SERVER ======
+   null = pakai broker publik PeerJS (buat ngetes).
+   Server sendiri (lihat folder peerserver/):
+   const PEER_CONFIG = { host:'rc.domainmu.com', port:443, path:'/peer', secure:true };  */
+const PEER_CONFIG = null;
 /* =============================== */
 
 const $=id=>document.getElementById(id);
@@ -145,7 +153,7 @@ const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar');
 const joy=$('joy'),nub=$('nub'),boostBtn=$('boost'),muteBtn=$('mute'),reparkBtn=$('repark');
-const roomIn=$('room'),hostBtn=$('host'),joinBtn=$('join'),mpst=$('mpst');
+const roomIn=$('room'),hostBtn=$('host'),joinBtn=$('join'),mpst=$('mpst'),nameIn=$('pname');
 
 let renderer,scene,camera,reticle,controller;
 let hitTestSource=null,localSpace=null,surfaceFound=false;
@@ -161,7 +169,7 @@ let arenaRing=null; const obstacles=[];
 const marks=[]; const MAX_MARKS=260; let markGeo=null,markMat=null,markTick=0;
 
 /* multiplayer state */
-let isMP=false, isHost=false, ROOM='', peer=null, myId='';
+let isMP=false, isHost=false, ROOM='', peer=null, myId='', myName='Player';
 const conns={};            // host: peerId->conn ; client: {host:conn}
 let calib=null;            // {origin, ax, ay, az, yaw}
 let calA=null;             // first calibration point
@@ -186,10 +194,11 @@ function connect(asHost){
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!code){ mpst.innerHTML='Status: <b>isi kode room dulu</b>'; return; }
   if(typeof Peer==='undefined'){ mpst.innerHTML='Status: <b>PeerJS gagal dimuat</b> (cek koneksi)'; return; }
+  myName=(nameIn.value||'').trim().slice(0,14)||'Player';
   ROOM='rcarena-'+code; isHost=asHost; isMP=true;
   mpst.textContent='Status: menghubungkan…';
   try{
-    peer = asHost ? new Peer(ROOM) : new Peer();
+    peer = asHost ? new Peer(ROOM, PEER_CONFIG||undefined) : new Peer(PEER_CONFIG||undefined);
   }catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; return; }
 
   peer.on('open',id=>{
@@ -328,6 +337,24 @@ async function buildGlbCar(){
   return g;
 }
 
+/* ---------- name labels (billboard sprites) ---------- */
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function makeLabel(text){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
+  const ctx=cv.getContext('2d');
+  const draw=t=>{ ctx.clearRect(0,0,256,64);
+    ctx.fillStyle='rgba(11,14,19,0.74)'; roundRect(ctx,8,14,240,38,12); ctx.fill();
+    ctx.fillStyle='#eef2f6'; ctx.font='600 26px system-ui,-apple-system,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,128,34); };
+  draw(text);
+  const tex=new THREE.CanvasTexture(cv); tex.anisotropy=4;
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));
+  spr.scale.set(0.13,0.0325,1); spr.position.set(0,0.13,0); spr.renderOrder=10;
+  spr.userData.redraw=t=>{draw(t);tex.needsUpdate=true;};
+  return spr;
+}
+function addLabel(group,text){ const l=makeLabel(text); group.add(l); group.userData.label=l; group.userData.labelText=text; }
+
 /* ---------- tap handler: calibrate (MP) or place (SP) ---------- */
 function onSelect(){
   if(carPlaced) return;
@@ -360,6 +387,7 @@ async function placeCar(refMatrixObj){
 async function startDriving(){
   if(!car){ building=true; car=USE_GLB?await buildGlbCar():buildProceduralCar(); frontWheels=car.userData.front; allWheels=car.userData.all; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
+  if(isMP && !car.userData.label) addLabel(car, myName);
   buildArena(); spawnObstacles();
   bottomwrap.style.display='none'; drivebar.style.display='flex';
   dot.className='dot drive'; statusT.textContent= isMP?'Balapan':'Mengemudi'; hint.classList.add('hide');
@@ -412,9 +440,11 @@ function applyRemote(d){
   let rc=remoteCars[d.id];
   if(!rc){
     const g=buildProceduralCar(0x4ab8ff); g.visible=true; scene.add(g);
+    addLabel(g, d.n||'Player');
     rc=remoteCars[d.id]={group:g,target:{x:d.x,z:d.z,h:d.h},cur:{x:d.x,z:d.z,h:d.h}};
     updatePlayers();
   }
+  if(d.n && rc.group.userData.labelText!==d.n){ rc.group.userData.label.userData.redraw(d.n); rc.group.userData.labelText=d.n; }
   rc.target.x=d.x; rc.target.z=d.z; rc.target.h=d.h;
 }
 function removeRemote(id){ const rc=remoteCars[id]; if(rc){scene.remove(rc.group);delete remoteCars[id];updatePlayers();} }
@@ -423,7 +453,7 @@ function sendState(){
   if(!calib||!carPlaced) return;
   const s=localToShared(car.position);
   const sh=heading - calib.yaw;           // local heading -> shared heading
-  broadcast({t:'state',id:myId,x:s.x,z:s.z,h:sh});
+  broadcast({t:'state',id:myId,n:myName,x:s.x,z:s.z,h:sh});
 }
 function updateRemotes(dt){
   for(const id in remoteCars){
