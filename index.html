@@ -44,6 +44,11 @@
     font-size:9px;letter-spacing:.12em;color:var(--muted)}
   .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 46px);right:14px;display:none;
     align-items:center;gap:8px;pointer-events:auto}
+  .board{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:14px;display:none;
+    background:var(--panel);border:1px solid var(--stroke);border-radius:12px;backdrop-filter:blur(10px);
+    padding:8px 10px;min-width:118px;pointer-events:none}
+  .brow{display:flex;justify-content:space-between;gap:14px;font-size:12px;color:var(--ink);padding:2px 0}
+  .brow b{font-variant-numeric:tabular-nums;color:var(--lock)}
   .hpbar{position:relative;width:120px;height:18px;border-radius:9px;overflow:hidden;
     border:1px solid var(--stroke);background:rgba(11,14,19,.7);backdrop-filter:blur(8px)}
   .hpfill{position:absolute;inset:0;width:100%;transform-origin:left;background:linear-gradient(90deg,#34e0c4,#9be86f);transition:width .15s}
@@ -99,10 +104,10 @@
 <div class="gate" id="gate">
   <div class="kicker">Markerless · WebXR · Multiplayer</div>
   <h1>Same floor.<br><em>Race together.</em></h1>
-  <p>Mode solo langsung jalan. Untuk multiplayer, satu pemain "Host", sisanya "Gabung" pakai kode yang sama lalu kalibrasi 2 titik di lantai yang sama.</p>
+  <p>Mode solo langsung jalan. Untuk multiplayer, semua pemain konek ke server yang sama pakai kode room yang sama, lalu kalibrasi 2 titik di lantai yang sama.</p>
 
   <div class="mp">
-    <div class="lbl">Multiplayer (opsional)</div>
+    <div class="lbl">Multiplayer (butuh server)</div>
     <div class="row">
       <input id="pname" placeholder="nama kamu" maxlength="14" autocapitalize="words" autocomplete="off" />
     </div>
@@ -110,8 +115,7 @@
       <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
     </div>
     <div class="row">
-      <button id="host">Host room</button>
-      <button id="join">Gabung</button>
+      <button id="connect" class="act">Konek ke server</button>
     </div>
     <div class="st" id="mpst">Status: solo (belum konek)</div>
   </div>
@@ -138,6 +142,8 @@
   </div>
   <div class="hint" id="hint">Gerakkan ponsel untuk memindai</div>
 
+  <div class="board" id="board"></div>
+
   <div class="bottomwrap" id="bottomwrap">
     <button class="place" id="place" disabled>Taruh mobil</button>
   </div>
@@ -149,12 +155,11 @@
   </div>
 
   <div class="drivebar" id="drivebar">
-    <div class="joy" id="joyL"><div class="nub" id="nubL"></div><span class="jlbl">STEER</span></div>
-    <div class="joy" id="joyR"><div class="nub" id="nubR"></div><span class="jlbl">GAS · REM</span></div>
+    <div class="joy" id="joyL"><div class="nub" id="nubL"></div><span class="jlbl">MAJU · MUNDUR</span></div>
+    <div class="joy" id="joyR"><div class="nub" id="nubR"></div><span class="jlbl">STEER</span></div>
   </div>
 </div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -168,11 +173,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* ====== SWITCH MODEL HERE ====== */
 const USE_GLB=false, GLB_URL='rc-car.glb', GLB_SCALE=1.0;
-/* ====== PEERJS SERVER ======
-   null = pakai broker publik PeerJS (buat ngetes).
-   Server sendiri (lihat folder peerserver/):
-   const PEER_CONFIG = { host:'rc.domainmu.com', port:443, path:'/peer', secure:true };  */
-const PEER_CONFIG = null;
+/* ====== GAME SERVER (server-authoritative) ======
+   null = solo saja (multiplayer mati). Isi dengan WSS server kamu (lihat gameserver/):
+   const SERVER_URL = 'wss://rc.domainmu.com';                                   */
+const SERVER_URL = null;
 /* =============================== */
 
 const $=id=>document.getElementById(id);
@@ -180,8 +184,8 @@ const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
 const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark');
-const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst');
-const roomIn=$('room'),hostBtn=$('host'),joinBtn=$('join'),mpst=$('mpst'),nameIn=$('pname');
+const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
+const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
 
 let renderer,scene,camera,reticle,controller;
 let hitTestSource=null,localSpace=null,surfaceFound=false;
@@ -192,7 +196,7 @@ let speed=0,heading=0,steerInput=0,throttleInput=0,boost=1,drifting=false;
 const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0.022,CAR_R=0.06;
 
 // health / combat
-let ownHP=100, dead=false, lastHitT=0, lastDmgT=0;
+let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
 const HIT_COOLDOWN=450;     // ms between damage events
 // uploaded model (local only)
 let uploadedGlb=null;       // ArrayBuffer of user .glb
@@ -203,11 +207,10 @@ let arenaRing=null; const obstacles=[];
 const marks=[]; const MAX_MARKS=260; let markGeo=null,markMat=null,markTick=0;
 
 /* multiplayer state */
-let isMP=false, isHost=false, ROOM='', peer=null, myId='', myName='Player';
-const conns={};            // host: peerId->conn ; client: {host:conn}
+let isMP=false, ROOM='', ws=null, myId='', myName='Player', myScore=0;
 let calib=null;            // {origin, ax, ay, az, yaw}
 let calA=null;             // first calibration point
-const remoteCars={};       // id -> {group,target,cur}
+const remoteCars={};       // id -> {group,target,cur,building}
 let netTimer=null;
 
 /* ---------- support ---------- */
@@ -221,57 +224,60 @@ function kill(){startBtn.disabled=true;startBtn.style.opacity=.4;}
 checkSupport();
 
 /* ---------- multiplayer connect ---------- */
-hostBtn.addEventListener('click',()=>connect(true));
-joinBtn.addEventListener('click',()=>connect(false));
+connectBtn.addEventListener('click',connectServer);
 
-function connect(asHost){
+function connectServer(){
+  if(!SERVER_URL){ mpst.innerHTML='Status: <b>SERVER_URL belum diisi</b> di kode (multiplayer mati)'; return; }
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!code){ mpst.innerHTML='Status: <b>isi kode room dulu</b>'; return; }
-  if(typeof Peer==='undefined'){ mpst.innerHTML='Status: <b>PeerJS gagal dimuat</b> (cek koneksi)'; return; }
   myName=(nameIn.value||'').trim().slice(0,14)||'Player';
-  ROOM='rcarena-'+code; isHost=asHost; isMP=true;
-  mpst.textContent='Status: menghubungkan…';
-  try{
-    peer = asHost ? new Peer(ROOM, PEER_CONFIG||undefined) : new Peer(PEER_CONFIG||undefined);
-  }catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; return; }
+  ROOM=code; isMP=true; mpst.textContent='Status: menghubungkan…';
+  try{ ws=new WebSocket(SERVER_URL); }
+  catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; isMP=false; return; }
 
-  peer.on('open',id=>{
-    myId=id;
-    if(asHost){ mpst.innerHTML='Status: <b>HOST aktif</b> · kode "'+code+'" · menunggu pemain'; }
-    else{
-      const c=peer.connect(ROOM,{reliable:false});
-      wireConn(c,true);
-      mpst.innerHTML='Status: <b>tergabung</b> ke "'+code+'"';
+  ws.addEventListener('open',()=>{ ws.send(JSON.stringify({t:'join',room:ROOM,name:myName}));
+    mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
+  ws.addEventListener('message',ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
+    if(m.t==='welcome'){ myId=m.id; }
+    else if(m.t==='snap'){ onSnap(m.players); } });
+  ws.addEventListener('close',()=>{ mpst.innerHTML='Status: <b>terputus</b>'; });
+  ws.addEventListener('error',()=>{ mpst.innerHTML='Status: <b>gagal konek</b> — cek SERVER_URL / server'; });
+}
+
+function onSnap(players){
+  const seen=new Set();
+  for(const p of players){
+    seen.add(p.id);
+    if(p.id===myId){            // server is authoritative for MY hp/score/alive
+      ownHP=p.hp; myScore=p.score;
+      updateHpBar();
+      if(!p.alive && !dead) enterDead();
+      if(p.alive && dead) exitDead();
+    } else {
+      applyRemote(p);           // other players
     }
-  });
-  peer.on('connection',c=>wireConn(c,false));   // host receives clients
-  peer.on('error',e=>{ mpst.innerHTML='Status: <b>'+e.type+'</b> — coba kode lain'; });
+  }
+  // remove players that left
+  for(const id in remoteCars) if(!seen.has(id)) removeRemote(id);
+  renderBoard(players);
 }
 
-function wireConn(c,iAmClient){
-  c.on('open',()=>{ conns[c.peer]=c; updatePlayers(); });
-  c.on('data',d=>onNet(d,c));
-  c.on('close',()=>{ delete conns[c.peer]; removeRemote(c.peer); updatePlayers(); });
+function sendState(){
+  if(!isMP||!ws||ws.readyState!==1||!calib||!carPlaced) return;
+  const s=localToShared(car.position);
+  ws.send(JSON.stringify({t:'state',x:s.x,z:s.z,h:heading-calib.yaw,speed:speed}));
 }
 
-function onNet(d,fromConn){
-  if(!d||!d.id) return;
-  if(d.t==='state'){
-    if(d.id!==myId) applyRemote(d);
-    if(isHost){ // relay to everyone else
-      for(const pid in conns){ if(pid!==fromConn.peer) try{conns[pid].send(d);}catch(e){} }
-    }
-  }else if(d.t==='bye'){ removeRemote(d.id); }
+function renderBoard(players){
+  const sorted=[...players].sort((a,b)=>b.score-a.score).slice(0,5);
+  board.innerHTML = sorted.map(p=>{
+    const me=p.id===myId?' style="color:var(--signal)"':'';
+    return '<div class="brow"'+me+'><span>'+esc(p.n)+(p.id===myId?' (kamu)':'')+'</span><b>'+p.score+'</b></div>';
+  }).join('');
+  board.style.display = players.length>1 ? 'block':'none';
+  playersT.textContent = isMP ? ('· '+players.length+' pemain') : '';
 }
-
-function broadcast(msg){
-  if(isHost){ for(const pid in conns) try{conns[pid].send(msg);}catch(e){} }
-  else { const c=conns[ROOM]; if(c) try{c.send(msg);}catch(e){} }
-}
-function updatePlayers(){
-  const n=1+Object.keys(conns).length + (isHost?0:0);
-  playersT.textContent = isMP ? ('· '+(Object.keys(remoteCars).length+1)+' pemain') : '';
-}
+function esc(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
 /* ---------- coordinate alignment (2-point) ---------- */
 function setCalib(A,B){
@@ -316,7 +322,6 @@ async function startAR(){
   gate.style.display='none'; hud.style.display='block';
   if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
   rng = isMP ? mulberry32(hashCode(ROOM)) : Math.random;
-  if(isMP){ updatePlayers(); }
   renderer.xr.setReferenceSpaceType('local');
   await renderer.xr.setSession(session);
   localSpace=await session.requestReferenceSpace('local');
@@ -347,8 +352,9 @@ function initThree(){
   placeBtn.addEventListener('click',onPrimary);
   reparkBtn.addEventListener('click',repark);
   muteBtn.addEventListener('click',toggleMute);
-  setupJoystick(joyL,nubL,'steer');
-  setupJoystick(joyR,nubR,'gas');
+  setupJoystick(joyL,nubL,'gas');
+  setupJoystick(joyR,nubR,'steer');
+  initParticles();
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 }
 
@@ -398,6 +404,11 @@ function buildUploadedCar(){
 }
 async function buildCar(color){
   if(uploadedGlb){ try{ return await buildUploadedCar(); }catch(e){ upst.textContent='Model gagal dimuat, pakai bawaan.'; uploadedGlb=null; } }
+  if(USE_GLB) return await buildGlbCar();
+  return buildProceduralCar(color);
+}
+// model that ALL players share (bundled): used for remote cars + own when no upload
+async function buildSharedCar(color){
   if(USE_GLB) return await buildGlbCar();
   return buildProceduralCar(color);
 }
@@ -456,8 +467,8 @@ async function startDriving(){
   if(building) return;
   if(!car){ building=true; car=await buildCar(); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
-  ownHP=100; dead=false; updateHpBar();
-  if(isMP){ if(!car.userData.label) addLabel(car, myName); topctrl.style.display='flex'; }
+  ownHP=100; dead=false; myScore=0; updateHpBar();
+  if(isMP){ if(!car.userData.label){ addUnderGlow(car,0xff6b4a); addLabel(car, myName); } topctrl.style.display='flex'; }
   buildArena(); spawnObstacles();
   bottomwrap.style.display='none'; drivebar.style.display='flex';
   dot.className='dot drive'; statusT.textContent= isMP?'Balapan':'Mengemudi'; hint.classList.add('hide');
@@ -466,9 +477,9 @@ async function startDriving(){
 
 function repark(){
   carPlaced=false; speed=0; steerInput=0; throttleInput=0; resetNub(); calA=null;
-  if(isMP){ broadcast({t:'bye',id:myId}); calib=null; placeBtn.textContent='Set titik A'; }
+  if(isMP){ calib=null; placeBtn.textContent='Set titik A'; }
   if(car)car.visible=false; clearWorld();
-  drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none';
+  drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
   dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
   hint.textContent= isMP?'Kalibrasi ulang: tap titik A bersama':'Gerakkan ponsel, lalu taruh ulang';
   hint.classList.remove('hide');
@@ -505,49 +516,77 @@ function dropMark(localX){
   m.position.copy(p); m.rotation.set(-Math.PI/2,0,0); marks.push(m);
 }
 
-/* ---------- remote cars ---------- */
-function applyRemote(d){
+/* ---------- remote cars (use the SAME bundled model so everyone matches) ---------- */
+async function applyRemote(d){
   let rc=remoteCars[d.id];
   if(!rc){
-    const g=buildProceduralCar(0x4ab8ff); g.visible=true; scene.add(g);
+    rc=remoteCars[d.id]={group:null,building:true,target:{x:d.x,z:d.z,h:d.h},cur:{x:d.x,z:d.z,h:d.h}};
+    const g=await buildSharedCar(0x4ab8ff);   // GLB if USE_GLB, else procedural blue
+    addUnderGlow(g,0x4ab8ff);
     addLabel(g, d.n||'Player', d.hp!=null?d.hp:100);
-    rc=remoteCars[d.id]={group:g,target:{x:d.x,z:d.z,h:d.h},cur:{x:d.x,z:d.z,h:d.h}};
-    updatePlayers();
+    g.visible=true; scene.add(g);
+    rc.group=g; rc.building=false;
   }
+  if(rc.building) return;                       // still loading model
   const ud=rc.group.userData, nm=d.n||ud.labelText, hp=d.hp!=null?d.hp:ud.labelHp;
   if(nm!==ud.labelText || Math.abs((hp||0)-(ud.labelHp||0))>=2){
     ud.label.userData.redraw(nm,hp); ud.labelText=nm; ud.labelHp=hp;
   }
+  rc.group.visible = d.alive!==false;
   rc.target.x=d.x; rc.target.z=d.z; rc.target.h=d.h;
 }
-function removeRemote(id){ const rc=remoteCars[id]; if(rc){scene.remove(rc.group);delete remoteCars[id];updatePlayers();} }
+function removeRemote(id){ const rc=remoteCars[id]; if(rc){ if(rc.group)scene.remove(rc.group); delete remoteCars[id]; } }
 
-/* ---------- combat / health ---------- */
+/* colored disc under a car to tell players apart regardless of model */
+function addUnderGlow(group,color){
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.05,0.08,32).rotateX(-Math.PI/2),
+    new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false}));
+  ring.position.y=0.002; group.add(ring);
+}
+
+/* ---------- health (server-authoritative; client only displays) ---------- */
 function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.width=h+'%'; hptxt.textContent=h; }
-function damage(amt){
-  if(dead) return;
-  ownHP=Math.max(0,ownHP-amt); lastDmgT=performance.now(); updateHpBar();
-  if(ownHP<=0) destroy();
+function enterDead(){ dead=true; speed=0; statusT.textContent='Hancur! Respawn…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
+function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Balapan'; }
+
+/* ---------- collision particles ---------- */
+const PARTICLES=[]; const PMAX=80; let pGeo=null;
+function initParticles(){ pGeo=new THREE.SphereGeometry(0.007,6,6); }
+function spawnBurst(pos,color,count=12,power=1){
+  for(let i=0;i<count;i++){
+    let p=PARTICLES.find(q=>!q.alive);
+    if(!p){
+      if(PARTICLES.length>=PMAX){ p=PARTICLES.reduce((a,b)=>a.life<b.life?a:b); }
+      else { const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+        m.renderOrder=9; scene.add(m); p={mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,alive:false}; PARTICLES.push(p); }
+    }
+    p.mesh.material.color.setHex(color);
+    p.mesh.position.copy(pos);
+    const a=Math.random()*Math.PI*2, sp=(0.3+Math.random()*0.7)*power;
+    p.vel.set(Math.cos(a)*sp,(0.3+Math.random()*0.9)*sp,Math.sin(a)*sp);
+    p.maxLife=p.life=0.35+Math.random()*0.3; p.alive=true; p.mesh.visible=true; p.mesh.scale.setScalar(1);
+  }
 }
-function destroy(){
-  dead=true; speed=0; statusT.textContent='Hancur! Respawn…';
-  if(car) car.visible=false;
-  setTimeout(()=>{
-    if(!carPlaced) return;
-    car.position.copy(arenaCenter); heading=0; car.rotation.y=0; speed=0;
-    ownHP=100; dead=false; updateHpBar(); car.visible=true; statusT.textContent='Balapan';
-  },1500);
+function updateParticles(dt){
+  for(const p of PARTICLES){
+    if(!p.alive) continue;
+    p.life-=dt;
+    if(p.life<=0){ p.alive=false; p.mesh.visible=false; continue; }
+    p.vel.y-=1.4*dt;
+    p.mesh.position.addScaledVector(p.vel,dt);
+    const t=p.life/p.maxLife;
+    p.mesh.material.opacity=t; p.mesh.scale.setScalar(0.4+t*0.9);
+  }
+}
+function spark(x,z,color){
+  const now=performance.now(); if(now-lastSparkT<110) return; lastSparkT=now;
+  spawnBurst(new THREE.Vector3(x,arenaCenter.y+0.04,z),color,12,1);
 }
 
-function sendState(){
-  if(!calib||!carPlaced) return;
-  const s=localToShared(car.position);
-  const sh=heading - calib.yaw;           // local heading -> shared heading
-  broadcast({t:'state',id:myId,n:myName,hp:Math.round(ownHP),x:s.x,z:s.z,h:sh});
-}
 function updateRemotes(dt){
   for(const id in remoteCars){
-    const rc=remoteCars[id], t=rc.target, c=rc.cur, k=Math.min(1,dt*12);
+    const rc=remoteCars[id]; if(!rc.group) continue;
+    const t=rc.target, c=rc.cur, k=Math.min(1,dt*12);
     c.x+=(t.x-c.x)*k; c.z+=(t.z-c.z)*k;
     let dh=((t.h-c.h+Math.PI)%(Math.PI*2))-Math.PI; c.h+=dh*k;
     const lp=sharedToLocal(c.x,c.z);
@@ -630,6 +669,7 @@ function render(t,frame){
 
   if(carPlaced&&car){ driveCar(dt); updateAudio(); }
   if(isMP&&calib) updateRemotes(dt);
+  updateParticles(dt);
   renderer.render(scene,camera);
 }
 
@@ -648,23 +688,22 @@ function driveCar(dt){
   // obstacle collision
   for(const o of obstacles){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
-    if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;speed*=-0.3;}
+    if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;
+      if(Math.abs(speed)>0.1) spark((car.position.x+o.position.x)/2,(car.position.z+o.position.z)/2,0xffae42);
+      speed*=-0.3;}
   }
-  // car-vs-car collision + damage (multiplayer)
+  // car-vs-car: bounce only (visual). Damage & score decided by the server.
   if(isMP){
-    const now=performance.now();
     for(const id in remoteCars){
-      const g=remoteCars[id].group; if(!g.visible) continue;
+      const g=remoteCars[id].group; if(!g||!g.visible) continue;
       const ox=car.position.x-g.position.x,oz=car.position.z-g.position.z,d=Math.hypot(ox,oz),min=CAR_R*2;
       if(d<min&&d>1e-4){
         const nx=ox/d,nz=oz/d;
         car.position.x=g.position.x+nx*min; car.position.z=g.position.z+nz*min;
-        const impact=Math.abs(speed); speed*=-0.45;
-        if(now-lastHitT>HIT_COOLDOWN){ lastHitT=now; damage(5+impact*45); }
+        if(Math.abs(speed)>0.1) spark((car.position.x+g.position.x)/2,(car.position.z+g.position.z)/2,0x9fe8ff);
+        speed*=-0.45;
       }
     }
-    // slow regen after a few seconds without hits
-    if(!dead && ownHP<100 && now-lastDmgT>3000){ ownHP=Math.min(100,ownHP+dt*5); updateHpBar(); }
   }
   car.rotation.y=heading;
   const steerAngle=steerInput*STEER_MAX;
