@@ -792,8 +792,8 @@ function driveCar(dt){
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
   if(Math.abs(speed)<.001) speed=0;
-  // setir putar (car-relative): putar kanan = belok kanan terus (360 oke), kiri = kiri
-  heading+=steerInput*Math.abs(speed)*TURN_RATE*dt;
+  // mundur dibiarkan spt sekarang (udah benar), maju di-flip biar benar juga: pakai -steer*speed
+  heading+=-steerInput*speed*TURN_RATE*dt;
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds
