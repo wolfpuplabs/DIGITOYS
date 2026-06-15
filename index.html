@@ -27,6 +27,9 @@
   .dot.locked,.dot.drive{background:var(--lock);box-shadow:0 0 12px var(--lock)}
   @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
   .players{color:var(--lock)} .spd{margin-left:auto;color:var(--ink);font-variant-numeric:tabular-nums}
+  .sysbtn{margin-left:8px;width:26px;height:26px;border-radius:8px;border:1px solid var(--stroke);
+    background:rgba(11,14,19,.6);color:var(--ink);font-size:13px;line-height:1;cursor:pointer;pointer-events:auto}
+  .sysbtn:active{transform:scale(.9)}
   .hint{position:absolute;left:50%;bottom:40%;transform:translateX(-50%);font-size:13px;text-align:center;
     background:var(--panel);border:1px solid var(--stroke);padding:9px 16px;border-radius:999px;
     backdrop-filter:blur(12px);transition:opacity .3s;max-width:80vw}
@@ -40,6 +43,27 @@
   .ghost{background:var(--panel);border:1px solid var(--stroke);color:var(--ink);backdrop-filter:blur(10px);box-shadow:none}
   .drivebar{position:absolute;left:0;right:0;bottom:0;display:none;align-items:flex-end;
     justify-content:space-between;padding:0 22px calc(env(safe-area-inset-bottom) + 26px);pointer-events:auto}
+  .jlbl{position:absolute;left:0;right:0;bottom:-18px;text-align:center;font-family:var(--mono);
+    font-size:9px;letter-spacing:.12em;color:var(--muted)}
+  .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 46px);right:14px;display:none;
+    align-items:center;gap:8px;pointer-events:auto}
+  .board{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:14px;display:none;
+    background:var(--panel);border:1px solid var(--stroke);border-radius:12px;backdrop-filter:blur(10px);
+    padding:8px 10px;min-width:118px;pointer-events:none}
+  .brow{display:flex;justify-content:space-between;gap:14px;font-size:12px;color:var(--ink);padding:2px 0}
+  .brow b{font-variant-numeric:tabular-nums;color:var(--lock)}
+  .hpbar{position:relative;width:120px;height:18px;border-radius:9px;overflow:hidden;
+    border:1px solid var(--stroke);background:rgba(11,14,19,.7);backdrop-filter:blur(8px)}
+  .hpfill{position:absolute;inset:0;width:100%;transform-origin:left;background:linear-gradient(90deg,#34e0c4,#9be86f);transition:width .15s}
+  .hptxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;color:#04201b;font-weight:700}
+  .iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--stroke);
+    background:var(--panel);backdrop-filter:blur(10px);color:var(--ink);font-size:17px;cursor:pointer}
+  .iconbtn:active{transform:scale(.92)}
+  .upbtn{flex:1;height:46px;border-radius:12px;border:1px dashed var(--stroke);background:rgba(255,255,255,.03);
+    color:var(--ink);font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .upbtn:active{transform:scale(.98)}
   .joy{width:130px;height:130px;border-radius:50%;position:relative;
     background:radial-gradient(circle at 50% 50%,rgba(20,26,34,.55),rgba(11,14,19,.75));
     border:1px solid var(--stroke);backdrop-filter:blur(10px);touch-action:none}
@@ -83,10 +107,10 @@
 <div class="gate" id="gate">
   <div class="kicker">Markerless · WebXR · Multiplayer</div>
   <h1>Same floor.<br><em>Race together.</em></h1>
-  <p>Mode solo langsung jalan. Untuk multiplayer, satu pemain "Host", sisanya "Gabung" pakai kode yang sama lalu kalibrasi 2 titik di lantai yang sama.</p>
+  <p>Mode solo langsung jalan. Untuk multiplayer (gratis), semua pemain isi kode room yang sama lalu "Konek" — orang pertama otomatis jadi host. Setelah masuk AR, kalibrasi 2 titik di lantai yang sama.</p>
 
   <div class="mp">
-    <div class="lbl">Multiplayer (opsional)</div>
+    <div class="lbl">Multiplayer (gratis · tanpa server)</div>
     <div class="row">
       <input id="pname" placeholder="nama kamu" maxlength="14" autocapitalize="words" autocomplete="off" />
     </div>
@@ -94,10 +118,18 @@
       <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
     </div>
     <div class="row">
-      <button id="host">Host room</button>
-      <button id="join">Gabung</button>
+      <button id="connect" class="act">Konek room</button>
     </div>
     <div class="st" id="mpst">Status: solo (belum konek)</div>
+  </div>
+
+  <div class="mp" style="margin-top:14px">
+    <div class="lbl">Model mobil (opsional)</div>
+    <div class="row">
+      <label class="upbtn" for="glbfile">📁 Upload .glb / .gltf</label>
+      <input id="glbfile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" hidden />
+    </div>
+    <div class="st" id="upst">Pakai mobil bawaan. Modelmu hanya tampil di layarmu.</div>
   </div>
 
   <button class="start" id="start">Mulai AR</button>
@@ -110,20 +142,27 @@
     <span id="status">Mencari permukaan…</span>
     <span class="players" id="players"></span>
     <span class="spd" id="spd">0.0 m/s</span>
+    <button class="sysbtn" id="reload" title="Muat ulang">⟳</button>
+    <button class="sysbtn" id="exit" title="Keluar AR">✕</button>
   </div>
   <div class="hint" id="hint">Gerakkan ponsel untuk memindai</div>
+
+  <div class="board" id="board"></div>
 
   <div class="bottomwrap" id="bottomwrap">
     <button class="place" id="place" disabled>Taruh mobil</button>
   </div>
 
+  <div class="topctrl" id="topctrl">
+    <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
+    <button class="iconbtn" id="steermode" title="Mode setir">👁</button>
+    <button class="iconbtn" id="mute">🔊</button>
+    <button class="iconbtn" id="repark">↺</button>
+  </div>
+
   <div class="drivebar" id="drivebar">
-    <div class="joy" id="joy"><div class="nub" id="nub"></div></div>
-    <div class="rcol">
-      <button class="rbtn boost" id="boost">⚡ Boost</button>
-      <button class="rbtn" id="mute">🔊 Suara</button>
-      <button class="rbtn" id="repark">↺ Ulang</button>
-    </div>
+    <div class="joy" id="joyL"><div class="nub" id="nubL"></div><span class="jlbl">MAJU · MUNDUR</span></div>
+    <div class="joy" id="joyR"><div class="nub" id="nubR"></div><span class="jlbl">STEER</span></div>
   </div>
 </div>
 
@@ -141,21 +180,23 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* ====== SWITCH MODEL HERE ====== */
 const USE_GLB=false, GLB_URL='rc-car.glb', GLB_SCALE=1.0;
-/* ====== PEERJS SERVER ======
-   null = pakai broker publik PeerJS (buat ngetes).
-   Server sendiri (lihat folder peerserver/):
-   const PEER_CONFIG = { host:'rc.domainmu.com', port:443, path:'/peer', secure:true };  */
-const PEER_CONFIG = null;
+/* ====== MULTIPLAYER ======
+   null  = GRATIS, tanpa server (P2P PeerJS broker publik; orang pertama jadi host otomatis).
+           Health & skor dihitung per-HP, jadi bisa sedikit beda — oke buat main bareng teman.
+   'wss://...' = server-authoritative (health & skor konsisten; deploy gameserver/ dulu).   */
+const SERVER_URL = null;
 /* =============================== */
 
 const $=id=>document.getElementById(id);
 const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
-const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar');
-const joy=$('joy'),nub=$('nub'),boostBtn=$('boost'),muteBtn=$('mute'),reparkBtn=$('repark');
-const roomIn=$('room'),hostBtn=$('host'),joinBtn=$('join'),mpst=$('mpst'),nameIn=$('pname');
+const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
+const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark'),steerBtn=$('steermode');
+const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
+const reloadBtn=$('reload'),exitBtn=$('exit');
+const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
 
-let renderer,scene,camera,reticle,controller;
+let renderer,scene,camera,reticle,controller,xrSession=null;
 let hitTestSource=null,localSpace=null,surfaceFound=false;
 let car=null,building=false,carPlaced=false,frontWheels=[],allWheels=[];
 const clock=new THREE.Clock();
@@ -163,17 +204,24 @@ const clock=new THREE.Clock();
 let speed=0,heading=0,steerInput=0,throttleInput=0,boost=1,drifting=false;
 const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0.022,CAR_R=0.06;
 
+// health / combat
+let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
+let steerMode='view';   // default: ikut layar (paling mirip car game biasa). 'consistent' | 'realistic' | 'view'
+const HIT_COOLDOWN=450;     // ms between damage events
+// uploaded model (local only)
+let uploadedGlb=null;       // ArrayBuffer of user .glb
+
 const arenaCenter=new THREE.Vector3();
 const ARENA_RADIUS=1.1,N_OBSTACLES=5;
 let arenaRing=null; const obstacles=[];
 const marks=[]; const MAX_MARKS=260; let markGeo=null,markMat=null,markTick=0;
 
 /* multiplayer state */
-let isMP=false, isHost=false, ROOM='', peer=null, myId='', myName='Player';
-const conns={};            // host: peerId->conn ; client: {host:conn}
+let isMP=false, ROOM='', ws=null, myId='', myName='Player', myScore=0;
+let isHost=false, peer=null; const conns={}; const boardData={};   // P2P mode
 let calib=null;            // {origin, ax, ay, az, yaw}
 let calA=null;             // first calibration point
-const remoteCars={};       // id -> {group,target,cur}
+const remoteCars={};       // id -> {group,target,cur,building}
 let netTimer=null;
 
 /* ---------- support ---------- */
@@ -187,57 +235,99 @@ function kill(){startBtn.disabled=true;startBtn.style.opacity=.4;}
 checkSupport();
 
 /* ---------- multiplayer connect ---------- */
-hostBtn.addEventListener('click',()=>connect(true));
-joinBtn.addEventListener('click',()=>connect(false));
+connectBtn.addEventListener('click',connectServer);
 
-function connect(asHost){
+function connectServer(){
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!code){ mpst.innerHTML='Status: <b>isi kode room dulu</b>'; return; }
-  if(typeof Peer==='undefined'){ mpst.innerHTML='Status: <b>PeerJS gagal dimuat</b> (cek koneksi)'; return; }
   myName=(nameIn.value||'').trim().slice(0,14)||'Player';
-  ROOM='rcarena-'+code; isHost=asHost; isMP=true;
-  mpst.textContent='Status: menghubungkan…';
-  try{
-    peer = asHost ? new Peer(ROOM, PEER_CONFIG||undefined) : new Peer(PEER_CONFIG||undefined);
-  }catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; return; }
+  ROOM=code; isMP=true;
+  if(SERVER_URL){ connectWS(code); }
+  else if(typeof Peer!=='undefined'){ connectP2P(code); }
+  else { mpst.innerHTML='Status: <b>PeerJS gagal dimuat</b> (cek koneksi)'; isMP=false; }
+}
 
-  peer.on('open',id=>{
-    myId=id;
-    if(asHost){ mpst.innerHTML='Status: <b>HOST aktif</b> · kode "'+code+'" · menunggu pemain'; }
-    else{
-      const c=peer.connect(ROOM,{reliable:false});
-      wireConn(c,true);
-      mpst.innerHTML='Status: <b>tergabung</b> ke "'+code+'"';
-    }
+/* ---------- FREE P2P (PeerJS, no server) ---------- */
+function connectP2P(code){
+  const roomId='rcarena-'+ROOM;
+  mpst.textContent='Status: mencari room…';
+  peer=new Peer(roomId);                                  // coba klaim room = jadi host
+  peer.on('open',()=>{ isHost=true; myId=roomId;
+    mpst.innerHTML='Status: <b style="color:var(--lock)">HOST</b> room "'+code+'" — tunggu pemain'; });
+  peer.on('connection',c=>wireConn(c));                   // host menerima pemain lain
+  peer.on('error',e=>{
+    if(e.type==='unavailable-id'){                        // room sudah ada -> gabung
+      isHost=false; peer=new Peer();
+      peer.on('open',gid=>{ myId=gid; wireConn(peer.connect(roomId,{reliable:false}));
+        mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
+      peer.on('error',err=>{ mpst.innerHTML='Status: <b>'+err.type+'</b> — coba lagi'; });
+    } else { mpst.innerHTML='Status: <b>'+e.type+'</b>'; }
   });
-  peer.on('connection',c=>wireConn(c,false));   // host receives clients
-  peer.on('error',e=>{ mpst.innerHTML='Status: <b>'+e.type+'</b> — coba kode lain'; });
 }
-
-function wireConn(c,iAmClient){
-  c.on('open',()=>{ conns[c.peer]=c; updatePlayers(); });
-  c.on('data',d=>onNet(d,c));
-  c.on('close',()=>{ delete conns[c.peer]; removeRemote(c.peer); updatePlayers(); });
+function wireConn(c){
+  c.on('open',()=>{ conns[c.peer]=c; });
+  c.on('data',d=>onP2P(d,c));
+  c.on('close',()=>{ delete conns[c.peer]; removeRemote(c.peer); delete boardData[c.peer]; renderBoardP2P(); });
 }
-
-function onNet(d,fromConn){
+function onP2P(d,from){
   if(!d||!d.id) return;
   if(d.t==='state'){
-    if(d.id!==myId) applyRemote(d);
-    if(isHost){ // relay to everyone else
-      for(const pid in conns){ if(pid!==fromConn.peer) try{conns[pid].send(d);}catch(e){} }
-    }
-  }else if(d.t==='bye'){ removeRemote(d.id); }
+    if(d.id!==myId){ applyRemote(d); boardData[d.id]={id:d.id,n:d.n||'Player',score:d.score||0}; renderBoardP2P(); }
+    if(isHost){ for(const pid in conns) if(pid!==from.peer) try{conns[pid].send(d);}catch(e){} }   // relay
+  } else if(d.t==='bye'){ removeRemote(d.id); delete boardData[d.id]; renderBoardP2P(); }
+}
+function p2pBroadcast(msg){ for(const pid in conns) try{conns[pid].send(msg);}catch(e){} }
+function renderBoardP2P(){ renderBoard([{id:myId,n:myName,score:myScore},...Object.values(boardData)]); }
+
+/* ---------- AUTHORITATIVE (WebSocket server) ---------- */
+function connectWS(code){
+  mpst.textContent='Status: menghubungkan…';
+  try{ ws=new WebSocket(SERVER_URL); }
+  catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; isMP=false; return; }
+  ws.addEventListener('open',()=>{ ws.send(JSON.stringify({t:'join',room:ROOM,name:myName}));
+    mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
+  ws.addEventListener('message',ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
+    if(m.t==='welcome'){ myId=m.id; }
+    else if(m.t==='snap'){ onSnap(m.players); } });
+  ws.addEventListener('close',()=>{ mpst.innerHTML='Status: <b>terputus</b>'; });
+  ws.addEventListener('error',()=>{ mpst.innerHTML='Status: <b>gagal konek</b> — cek SERVER_URL / server'; });
 }
 
-function broadcast(msg){
-  if(isHost){ for(const pid in conns) try{conns[pid].send(msg);}catch(e){} }
-  else { const c=conns[ROOM]; if(c) try{c.send(msg);}catch(e){} }
+function onSnap(players){
+  const seen=new Set();
+  for(const p of players){
+    seen.add(p.id);
+    if(p.id===myId){            // server is authoritative for MY hp/score/alive
+      ownHP=p.hp; myScore=p.score;
+      updateHpBar();
+      if(!p.alive && !dead) enterDead();
+      if(p.alive && dead) exitDead();
+    } else {
+      applyRemote(p);           // other players
+    }
+  }
+  // remove players that left
+  for(const id in remoteCars) if(!seen.has(id)) removeRemote(id);
+  renderBoard(players);
 }
-function updatePlayers(){
-  const n=1+Object.keys(conns).length + (isHost?0:0);
-  playersT.textContent = isMP ? ('· '+(Object.keys(remoteCars).length+1)+' pemain') : '';
+
+function sendState(){
+  if(!isMP||!calib||!carPlaced) return;
+  const s=localToShared(car.position), sh=heading-calib.yaw;
+  if(SERVER_URL){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({t:'state',x:s.x,z:s.z,h:sh,speed})); }
+  else { p2pBroadcast({t:'state',id:myId,n:myName,score:myScore,hp:Math.round(ownHP),x:s.x,z:s.z,h:sh,speed}); }
 }
+
+function renderBoard(players){
+  const sorted=[...players].sort((a,b)=>b.score-a.score).slice(0,5);
+  board.innerHTML = sorted.map(p=>{
+    const me=p.id===myId?' style="color:var(--signal)"':'';
+    return '<div class="brow"'+me+'><span>'+esc(p.n)+(p.id===myId?' (kamu)':'')+'</span><b>'+p.score+'</b></div>';
+  }).join('');
+  board.style.display = players.length>1 ? 'block':'none';
+  playersT.textContent = isMP ? ('· '+players.length+' pemain') : '';
+}
+function esc(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
 /* ---------- coordinate alignment (2-point) ---------- */
 function setCalib(A,B){
@@ -260,6 +350,16 @@ function hashCode(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeA
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 let rng=Math.random;
 
+/* ---------- GLB uploader (local only) ---------- */
+glbfile.addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  try{
+    uploadedGlb=await f.arrayBuffer();
+    upst.innerHTML='Model: <b style="color:var(--lock)">'+f.name+'</b> (hanya di layarmu)';
+    if(car){ scene.remove(car); car=null; }   // rebuild on next place
+  }catch(err){ upst.textContent='Gagal baca file: '+err.message; uploadedGlb=null; }
+});
+
 /* ---------- start AR ---------- */
 startBtn.addEventListener('click',startAR);
 async function startAR(){
@@ -269,19 +369,32 @@ async function startAR(){
     session=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:hud}});
   }catch(e){ showErr('<b>Gagal memulai AR.</b> Izin kamera + akses <b>HTTPS</b>. ('+e.message+')'); return; }
+  xrSession=session;
   gate.style.display='none'; hud.style.display='block';
   if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
   rng = isMP ? mulberry32(hashCode(ROOM)) : Math.random;
-  if(isMP){ updatePlayers(); }
   renderer.xr.setReferenceSpaceType('local');
   await renderer.xr.setSession(session);
   localSpace=await session.requestReferenceSpace('local');
   const viewer=await session.requestReferenceSpace('viewer');
   hitTestSource=await session.requestHitTestSource({space:viewer});
-  session.addEventListener('end',()=>{ hud.style.display='none'; gate.style.display='flex';
-    hitTestSource=null; surfaceFound=false; if(netTimer){clearInterval(netTimer);netTimer=null;} });
+  session.addEventListener('end',()=>{
+    hud.style.display='none'; gate.style.display='flex';
+    hitTestSource=null; surfaceFound=false; xrSession=null;
+    if(netTimer){clearInterval(netTimer);netTimer=null;}
+    carPlaced=false; dead=false; calA=null; if(isMP) calib=null;
+    if(car) car.visible=false; clearWorld();
+    drivebar.style.display='none'; topctrl.style.display='none'; board.style.display='none';
+    bottomwrap.style.display='flex'; placeBtn.disabled=true;
+    placeBtn.textContent= isMP?'Set titik A':'Taruh mobil';
+    dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
+    hint.textContent='Gerakkan ponsel untuk memindai'; hint.classList.remove('hide');
+  });
   renderer.setAnimationLoop(render);
 }
+
+reloadBtn.addEventListener('click',()=>location.reload());
+exitBtn.addEventListener('click',()=>{ if(xrSession) xrSession.end(); });
 
 function initThree(){
   if(renderer) return;
@@ -303,7 +416,17 @@ function initThree(){
   placeBtn.addEventListener('click',onPrimary);
   reparkBtn.addEventListener('click',repark);
   muteBtn.addEventListener('click',toggleMute);
-  setupJoystick(); setupBoost();
+  steerBtn.addEventListener('click',()=>{
+    steerMode = steerMode==='consistent' ? 'realistic' : steerMode==='realistic' ? 'view' : 'consistent';
+    const g = {consistent:'🚗',realistic:'🏎️',view:'👁'}[steerMode];
+    const t = {consistent:'Setir: Konsisten (kanan=kanan, bisa 360)',
+               realistic:'Setir: Realistis (mundur kebalik)',
+               view:'Setir: Ikut Layar'}[steerMode];
+    steerBtn.textContent=g; statusT.textContent=t;
+  });
+  setupJoystick(joyL,nubL,'gas');
+  setupJoystick(joyR,nubR,'steer');
+  initParticles();
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 }
 
@@ -336,24 +459,55 @@ async function buildGlbCar(){
   g.userData.all =['wheel_FL','wheel_FR','wheel_RL','wheel_RR'].map(n=>g.getObjectByName(n)).filter(Boolean);
   return g;
 }
+function buildUploadedCar(){
+  return new Promise((resolve,reject)=>{
+    new GLTFLoader().parse(uploadedGlb,'',gltf=>{
+      const model=gltf.scene;
+      // auto-fit: scale so footprint ~0.18 m, then drop onto ground
+      let box=new THREE.Box3().setFromObject(model), size=new THREE.Vector3(); box.getSize(size);
+      const s=0.18/Math.max(size.x,size.z,1e-3); model.scale.setScalar(s);
+      box=new THREE.Box3().setFromObject(model); model.position.y-=box.min.y;
+      const g=new THREE.Group(); g.add(model);
+      g.userData.front=['wheel_FL','wheel_FR'].map(n=>g.getObjectByName(n)).filter(Boolean);
+      g.userData.all =['wheel_FL','wheel_FR','wheel_RL','wheel_RR'].map(n=>g.getObjectByName(n)).filter(Boolean);
+      resolve(g);
+    }, err=>reject(err));
+  });
+}
+async function buildCar(color){
+  if(uploadedGlb){ try{ return await buildUploadedCar(); }catch(e){ upst.textContent='Model gagal dimuat, pakai bawaan.'; uploadedGlb=null; } }
+  if(USE_GLB) return await buildGlbCar();
+  return buildProceduralCar(color);
+}
+// model that ALL players share (bundled): used for remote cars + own when no upload
+async function buildSharedCar(color){
+  if(USE_GLB) return await buildGlbCar();
+  return buildProceduralCar(color);
+}
 
 /* ---------- name labels (billboard sprites) ---------- */
 function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
-function makeLabel(text){
-  const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
+function makeLabel(text,hp){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=84;
   const ctx=cv.getContext('2d');
-  const draw=t=>{ ctx.clearRect(0,0,256,64);
-    ctx.fillStyle='rgba(11,14,19,0.74)'; roundRect(ctx,8,14,240,38,12); ctx.fill();
+  const draw=(t,h)=>{ ctx.clearRect(0,0,256,84);
+    ctx.fillStyle='rgba(11,14,19,0.74)'; roundRect(ctx,8,6,240,40,12); ctx.fill();
     ctx.fillStyle='#eef2f6'; ctx.font='600 26px system-ui,-apple-system,sans-serif';
-    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,128,34); };
-  draw(text);
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,128,27);
+    if(h!=null){ // health bar
+      ctx.fillStyle='rgba(11,14,19,0.6)'; roundRect(ctx,28,56,200,16,8); ctx.fill();
+      const w=Math.max(0,Math.min(1,h/100))*192;
+      ctx.fillStyle = h>50?'#34e0c4':h>25?'#ffb020':'#ff5a44';
+      roundRect(ctx,32,58,w,12,6); ctx.fill();
+    } };
+  draw(text,hp);
   const tex=new THREE.CanvasTexture(cv); tex.anisotropy=4;
   const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));
-  spr.scale.set(0.13,0.0325,1); spr.position.set(0,0.13,0); spr.renderOrder=10;
-  spr.userData.redraw=t=>{draw(t);tex.needsUpdate=true;};
+  spr.scale.set(0.15,0.0492,1); spr.position.set(0,0.14,0); spr.renderOrder=10;
+  spr.userData.redraw=(t,h)=>{draw(t,h);tex.needsUpdate=true;};
   return spr;
 }
-function addLabel(group,text){ const l=makeLabel(text); group.add(l); group.userData.label=l; group.userData.labelText=text; }
+function addLabel(group,text,hp){ const l=makeLabel(text,hp); group.add(l); group.userData.label=l; group.userData.labelText=text; group.userData.labelHp=hp; }
 
 /* ---------- tap handler: calibrate (MP) or place (SP) ---------- */
 function onSelect(){
@@ -377,17 +531,16 @@ function calibrateTap(){
 }
 
 async function placeCar(refMatrixObj){
-  if(building) return;
-  if(!car){ building=true; car=USE_GLB?await buildGlbCar():buildProceduralCar(); frontWheels=car.userData.front; allWheels=car.userData.all; scene.add(car); building=false; }
-  car.position.setFromMatrixPosition(refMatrixObj.matrix);
-  arenaCenter.copy(car.position);
+  arenaCenter.setFromMatrixPosition(refMatrixObj.matrix);
   startDriving();
 }
 
 async function startDriving(){
-  if(!car){ building=true; car=USE_GLB?await buildGlbCar():buildProceduralCar(); frontWheels=car.userData.front; allWheels=car.userData.all; scene.add(car); building=false; }
+  if(building) return;
+  if(!car){ building=true; car=await buildCar(); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
-  if(isMP && !car.userData.label) addLabel(car, myName);
+  ownHP=100; dead=false; myScore=0; updateHpBar();
+  if(isMP){ if(!car.userData.label){ addUnderGlow(car,0xff6b4a); addLabel(car, myName); } topctrl.style.display='flex'; }
   buildArena(); spawnObstacles();
   bottomwrap.style.display='none'; drivebar.style.display='flex';
   dot.className='dot drive'; statusT.textContent= isMP?'Balapan':'Mengemudi'; hint.classList.add('hide');
@@ -396,9 +549,9 @@ async function startDriving(){
 
 function repark(){
   carPlaced=false; speed=0; steerInput=0; throttleInput=0; resetNub(); calA=null;
-  if(isMP){ broadcast({t:'bye',id:myId}); calib=null; placeBtn.textContent='Set titik A'; }
+  if(isMP){ calib=null; placeBtn.textContent='Set titik A'; }
   if(car)car.visible=false; clearWorld();
-  drivebar.style.display='none'; bottomwrap.style.display='flex';
+  drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
   dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
   hint.textContent= isMP?'Kalibrasi ulang: tap titik A bersama':'Gerakkan ponsel, lalu taruh ulang';
   hint.classList.remove('hide');
@@ -435,29 +588,81 @@ function dropMark(localX){
   m.position.copy(p); m.rotation.set(-Math.PI/2,0,0); marks.push(m);
 }
 
-/* ---------- remote cars ---------- */
-function applyRemote(d){
+/* ---------- remote cars (use the SAME bundled model so everyone matches) ---------- */
+async function applyRemote(d){
   let rc=remoteCars[d.id];
   if(!rc){
-    const g=buildProceduralCar(0x4ab8ff); g.visible=true; scene.add(g);
-    addLabel(g, d.n||'Player');
-    rc=remoteCars[d.id]={group:g,target:{x:d.x,z:d.z,h:d.h},cur:{x:d.x,z:d.z,h:d.h}};
-    updatePlayers();
+    rc=remoteCars[d.id]={group:null,building:true,target:{x:d.x,z:d.z,h:d.h},cur:{x:d.x,z:d.z,h:d.h}};
+    const g=await buildSharedCar(0x4ab8ff);   // GLB if USE_GLB, else procedural blue
+    addUnderGlow(g,0x4ab8ff);
+    addLabel(g, d.n||'Player', d.hp!=null?d.hp:100);
+    g.visible=true; scene.add(g);
+    rc.group=g; rc.building=false;
   }
-  if(d.n && rc.group.userData.labelText!==d.n){ rc.group.userData.label.userData.redraw(d.n); rc.group.userData.labelText=d.n; }
+  if(rc.building) return;                       // still loading model
+  const ud=rc.group.userData, nm=d.n||ud.labelText, hp=d.hp!=null?d.hp:ud.labelHp;
+  if(nm!==ud.labelText || Math.abs((hp||0)-(ud.labelHp||0))>=2){
+    ud.label.userData.redraw(nm,hp); ud.labelText=nm; ud.labelHp=hp;
+  }
+  rc.group.visible = d.alive!==false;
+  rc.speed = d.speed||0;
   rc.target.x=d.x; rc.target.z=d.z; rc.target.h=d.h;
 }
-function removeRemote(id){ const rc=remoteCars[id]; if(rc){scene.remove(rc.group);delete remoteCars[id];updatePlayers();} }
+function removeRemote(id){ const rc=remoteCars[id]; if(rc){ if(rc.group)scene.remove(rc.group); delete remoteCars[id]; } }
 
-function sendState(){
-  if(!calib||!carPlaced) return;
-  const s=localToShared(car.position);
-  const sh=heading - calib.yaw;           // local heading -> shared heading
-  broadcast({t:'state',id:myId,n:myName,x:s.x,z:s.z,h:sh});
+/* colored disc under a car to tell players apart regardless of model */
+function addUnderGlow(group,color){
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.05,0.08,32).rotateX(-Math.PI/2),
+    new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false}));
+  ring.position.y=0.002; group.add(ring);
 }
+
+/* ---------- health (server-authoritative; client only displays) ---------- */
+function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.width=h+'%'; hptxt.textContent=h; }
+function enterDead(){ dead=true; speed=0; statusT.textContent='Hancur! Respawn…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
+function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Balapan'; }
+// local combat (dipakai di mode P2P gratis; di mode WS damage diatur server)
+function localDamage(amt){ if(dead) return; ownHP=Math.max(0,ownHP-amt); updateHpBar(); if(ownHP<=0) localDestroy(); }
+function localDestroy(){ enterDead(); setTimeout(()=>{ if(carPlaced){ ownHP=100; updateHpBar(); exitDead(); } },1500); }
+
+/* ---------- collision particles ---------- */
+const PARTICLES=[]; const PMAX=80; let pGeo=null;
+function initParticles(){ pGeo=new THREE.SphereGeometry(0.007,6,6); }
+function spawnBurst(pos,color,count=12,power=1){
+  for(let i=0;i<count;i++){
+    let p=PARTICLES.find(q=>!q.alive);
+    if(!p){
+      if(PARTICLES.length>=PMAX){ p=PARTICLES.reduce((a,b)=>a.life<b.life?a:b); }
+      else { const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+        m.renderOrder=9; scene.add(m); p={mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,alive:false}; PARTICLES.push(p); }
+    }
+    p.mesh.material.color.setHex(color);
+    p.mesh.position.copy(pos);
+    const a=Math.random()*Math.PI*2, sp=(0.3+Math.random()*0.7)*power;
+    p.vel.set(Math.cos(a)*sp,(0.3+Math.random()*0.9)*sp,Math.sin(a)*sp);
+    p.maxLife=p.life=0.35+Math.random()*0.3; p.alive=true; p.mesh.visible=true; p.mesh.scale.setScalar(1);
+  }
+}
+function updateParticles(dt){
+  for(const p of PARTICLES){
+    if(!p.alive) continue;
+    p.life-=dt;
+    if(p.life<=0){ p.alive=false; p.mesh.visible=false; continue; }
+    p.vel.y-=1.4*dt;
+    p.mesh.position.addScaledVector(p.vel,dt);
+    const t=p.life/p.maxLife;
+    p.mesh.material.opacity=t; p.mesh.scale.setScalar(0.4+t*0.9);
+  }
+}
+function spark(x,z,color){
+  const now=performance.now(); if(now-lastSparkT<110) return; lastSparkT=now;
+  spawnBurst(new THREE.Vector3(x,arenaCenter.y+0.04,z),color,12,1);
+}
+
 function updateRemotes(dt){
   for(const id in remoteCars){
-    const rc=remoteCars[id], t=rc.target, c=rc.cur, k=Math.min(1,dt*12);
+    const rc=remoteCars[id]; if(!rc.group) continue;
+    const t=rc.target, c=rc.cur, k=Math.min(1,dt*12);
     c.x+=(t.x-c.x)*k; c.z+=(t.z-c.z)*k;
     let dh=((t.h-c.h+Math.PI)%(Math.PI*2))-Math.PI; c.h+=dh*k;
     const lp=sharedToLocal(c.x,c.z);
@@ -466,25 +671,22 @@ function updateRemotes(dt){
   }
 }
 
-/* ---------- joystick + boost + mute ---------- */
-function setupJoystick(){
+/* ---------- joysticks (left=steer, right=gas/brake) + mute ---------- */
+function setupJoystick(el,nubEl,mode){
   const R=48; let active=false,id=null;
   const set=(cx,cy,rect)=>{
     let dx=cx-(rect.left+rect.width/2),dy=cy-(rect.top+rect.height/2);
     const d=Math.hypot(dx,dy); if(d>R){dx*=R/d;dy*=R/d;}
-    nub.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
-    steerInput=Math.max(-1,Math.min(1,dx/R)); throttleInput=Math.max(-1,Math.min(1,-dy/R));
+    if(mode==='steer'){ dy=0; steerInput=Math.max(-1,Math.min(1,dx/R)); }
+    else { dx=0; throttleInput=Math.max(-1,Math.min(1,-dy/R)); }   // up=gas, down=rem/mundur
+    nubEl.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
   };
-  joy.addEventListener('pointerdown',e=>{active=true;id=e.pointerId;joy.setPointerCapture(id);set(e.clientX,e.clientY,joy.getBoundingClientRect());});
-  joy.addEventListener('pointermove',e=>{if(active&&e.pointerId===id)set(e.clientX,e.clientY,joy.getBoundingClientRect());});
-  const up=e=>{if(active&&e.pointerId===id){active=false;steerInput=0;throttleInput=0;resetNub();}};
-  joy.addEventListener('pointerup',up); joy.addEventListener('pointercancel',up);
+  el.addEventListener('pointerdown',e=>{active=true;id=e.pointerId;el.setPointerCapture(id);set(e.clientX,e.clientY,el.getBoundingClientRect());});
+  el.addEventListener('pointermove',e=>{if(active&&e.pointerId===id)set(e.clientX,e.clientY,el.getBoundingClientRect());});
+  const up=e=>{if(active&&e.pointerId===id){active=false;if(mode==='steer')steerInput=0;else throttleInput=0;nubEl.style.transform='translate(-50%,-50%)';}};
+  el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
 }
-function resetNub(){nub.style.transform='translate(-50%,-50%)';}
-function setupBoost(){
-  const on=()=>{boost=1.9;boostBtn.style.opacity=.7;},off=()=>{boost=1;boostBtn.style.opacity=1;};
-  boostBtn.addEventListener('pointerdown',on);boostBtn.addEventListener('pointerup',off);boostBtn.addEventListener('pointercancel',off);
-}
+function resetNub(){ nubL.style.transform='translate(-50%,-50%)'; nubR.style.transform='translate(-50%,-50%)'; }
 
 /* ---------- ENGINE AUDIO (Web Audio synth, no files) ---------- */
 let audioCtx=null,master=null,osc1=null,osc2=null,sub=null,engGain=null,screechGain=null,muted=false;
@@ -523,7 +725,7 @@ function updateAudio(){
   screechGain.gain.setTargetAtTime(drifting?0.16*Math.min(1,sp+0.3):0,now,0.05);
 }
 function toggleMute(){
-  muted=!muted; muteBtn.textContent=muted?'🔇 Bisu':'🔊 Suara';
+  muted=!muted; muteBtn.textContent=muted?'🔇':'🔊';
   if(audioCtx) master.gain.setTargetAtTime(muted?0:0.9,audioCtx.currentTime,0.05);
 }
 
@@ -543,15 +745,28 @@ function render(t,frame){
 
   if(carPlaced&&car){ driveCar(dt); updateAudio(); }
   if(isMP&&calib) updateRemotes(dt);
+  updateParticles(dt);
   renderer.render(scene,camera);
 }
 
 function driveCar(dt){
+  if(dead){ speed=0; spdT.textContent='0.0 m/s'; return; }
   const target=(throttleInput>=0?MAX_SPEED:MAX_REV)*throttleInput*boost;
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
   if(Math.abs(speed)<.001) speed=0;
-  heading+=steerInput*speed*TURN_RATE*dt;
+  // mode setir (bisa diganti via tombol di pojok kanan atas):
+  if(steerMode==='view'){            // ikut layar: kanan = ke kanan layar (maju/mundur), 360 ke arahmu terbatas
+    let eff=steerInput;
+    const camDir=new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y=0;
+    const vel=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading)).multiplyScalar(speed);
+    if(vel.dot(camDir)<0) eff=-steerInput;
+    heading+=eff*Math.abs(speed)*TURN_RATE*dt;
+  } else if(steerMode==='realistic'){ // RC realistis: mundur otomatis kebalik (maju & mundur berlawanan)
+    heading+=steerInput*speed*TURN_RATE*dt;
+  } else {                            // konsisten: kanan=belok kanan, maju & mundur sama, bisa 360 penuh
+    heading+=steerInput*Math.abs(speed)*TURN_RATE*dt;
+  }
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds
@@ -560,7 +775,29 @@ function driveCar(dt){
   // obstacle collision
   for(const o of obstacles){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
-    if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;speed*=-0.3;}
+    if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;
+      if(Math.abs(speed)>0.1) spark((car.position.x+o.position.x)/2,(car.position.z+o.position.z)/2,0xffae42);
+      speed*=-0.3;}
+  }
+  // car-vs-car: bounce + (mode P2P) damage & skor lokal. Di mode WS, server yang putuskan.
+  if(isMP){
+    const now=performance.now();
+    for(const id in remoteCars){
+      const g=remoteCars[id].group; if(!g||!g.visible) continue;
+      const ox=car.position.x-g.position.x,oz=car.position.z-g.position.z,d=Math.hypot(ox,oz),min=CAR_R*2;
+      if(d<min&&d>1e-4){
+        const nx=ox/d,nz=oz/d;
+        car.position.x=g.position.x+nx*min; car.position.z=g.position.z+nz*min;
+        if(Math.abs(speed)>0.1) spark((car.position.x+g.position.x)/2,(car.position.z+g.position.z)/2,0x9fe8ff);
+        speed*=-0.45;
+        if(!SERVER_URL && now-lastHitT>HIT_COOLDOWN){
+          lastHitT=now;
+          const rs=remoteCars[id].speed||0;
+          if(Math.abs(speed)>=Math.abs(rs)){ myScore++; renderBoardP2P(); }
+          localDamage(5+Math.abs(speed)*45);
+        }
+      }
+    }
   }
   car.rotation.y=heading;
   const steerAngle=steerInput*STEER_MAX;
