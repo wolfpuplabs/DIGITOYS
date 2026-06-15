@@ -1,0 +1,7 @@
+# Caddy gives you automatic HTTPS (and therefore WSS) with one line.
+# Replace rc.domainmu.com with a domain whose DNS A-record points to this server.
+# Run:  caddy run --config Caddyfile
+
+rc.domainmu.com {
+    reverse_proxy localhost:9000
+}

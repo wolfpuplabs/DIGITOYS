@@ -1,0 +1,17 @@
+{
+  "name": "rc-arena-peerserver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted PeerJS signaling server for the markerless AR RC app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "peer": "^1.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
