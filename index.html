@@ -251,9 +251,15 @@ let netTimer=null;
 
 /* ---------- support ---------- */
 async function checkSupport(){
-  if(!('xr' in navigator)){ showErr('<b>WebXR tidak tersedia.</b> Pakai <b>Chrome di Android</b> (ARCore). iOS belum support — pakai 8thWall.'); kill(); return; }
-  const ok=await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
-  if(!ok){ showErr('<b>Mode AR tidak didukung.</b> Coba Chrome terbaru di Android + "Google Play Services for AR".'); kill(); }
+  try{
+    if(!navigator.xr || typeof navigator.xr.isSessionSupported!=='function'){
+      showErr('<b>Browser ini tidak mendukung WebXR.</b> Buka di <b>Chrome di Android</b> (perangkat dengan ARCore). Browser di iPhone/iPad (Safari/Chrome/Firefox) belum mendukung WebXR.'); kill(); return;
+    }
+    const ok=await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+    if(!ok){ showErr('<b>Mode AR (immersive-ar) tidak didukung</b> di perangkat/browser ini. Pakai Chrome terbaru di Android + "Google Play Services for AR".'); kill(); }
+  }catch(e){
+    showErr('<b>Browser ini tidak mendukung WebXR.</b> Buka di Chrome di Android (ARCore).'); kill();
+  }
 }
 function showErr(m){errBox.innerHTML=m;errBox.style.display='block';}
 function kill(){startBtn.disabled=true;startBtn.style.opacity=.4;}
@@ -388,6 +394,10 @@ glbfile.addEventListener('change',async e=>{
 /* ---------- start AR ---------- */
 startBtn.addEventListener('click',startAR);
 async function startAR(){
+  if(!navigator.xr || typeof navigator.xr.requestSession!=='function'){
+    showErr('<b>Browser ini tidak mendukung WebXR</b>, jadi AR tidak bisa jalan di sini. Buka di <b>Chrome di Android</b> (perangkat dengan ARCore). iPhone/iPad belum didukung.');
+    return;
+  }
   initThree(); initAudio();
   let session;
   try{
@@ -698,20 +708,18 @@ function setupControls(){
   };
   hold(gasBtn); hold(brakeBtn);
 
-  // steering wheel: putar dengan jari (swipe). Lepas -> balik ke tengah.
-  let lastAng=0, id=null;
-  const angle=e=>{ const r=wheelEl.getBoundingClientRect();
-    return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2))*180/Math.PI; };
-  wheelEl.addEventListener('pointerdown',e=>{ wheelDragging=true; id=e.pointerId; wheelEl.setPointerCapture(id); lastAng=angle(e); });
+  // steering wheel: geser kiri/kanan untuk belok (tahan = belok terus). Lepas -> balik tengah.
+  let startX=0, id=null; const RANGE=64;   // px geser untuk belok penuh
+  wheelEl.addEventListener('pointerdown',e=>{ wheelDragging=true; id=e.pointerId; wheelEl.setPointerCapture(id); startX=e.clientX; });
   wheelEl.addEventListener('pointermove',e=>{ if(!wheelDragging||e.pointerId!==id) return;
-    const a=angle(e); let d=a-lastAng; if(d>180)d-=360; if(d<-180)d+=360; lastAng=a;
-    wheelAngle=Math.max(-WHEEL_MAX,Math.min(WHEEL_MAX,wheelAngle+d)); });
+    steerInput=Math.max(-1,Math.min(1,(e.clientX-startX)/RANGE));
+    wheelAngle=steerInput*WHEEL_MAX; });
   const release=e=>{ if(e.pointerId===id){ wheelDragging=false; id=null; } };
   wheelEl.addEventListener('pointerup',release); wheelEl.addEventListener('pointercancel',release);
 }
 function updateWheel(dt){
-  if(!wheelDragging){ wheelAngle += (0-wheelAngle)*Math.min(1,dt*10); if(Math.abs(wheelAngle)<0.5) wheelAngle=0; }
-  steerInput = Math.max(-1,Math.min(1, wheelAngle/WHEEL_MAX));
+  if(!wheelDragging){ wheelAngle += (0-wheelAngle)*Math.min(1,dt*10); if(Math.abs(wheelAngle)<0.5) wheelAngle=0;
+    steerInput=wheelAngle/WHEEL_MAX; }
   wheelEl.style.transform = `rotate(${wheelAngle}deg)`;
 }
 function resetControls(){ wheelAngle=0; steerInput=0; throttleInput=0;
