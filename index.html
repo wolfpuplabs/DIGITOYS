@@ -40,6 +40,22 @@
   .ghost{background:var(--panel);border:1px solid var(--stroke);color:var(--ink);backdrop-filter:blur(10px);box-shadow:none}
   .drivebar{position:absolute;left:0;right:0;bottom:0;display:none;align-items:flex-end;
     justify-content:space-between;padding:0 22px calc(env(safe-area-inset-bottom) + 26px);pointer-events:auto}
+  .jlbl{position:absolute;left:0;right:0;bottom:-18px;text-align:center;font-family:var(--mono);
+    font-size:9px;letter-spacing:.12em;color:var(--muted)}
+  .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 46px);right:14px;display:none;
+    align-items:center;gap:8px;pointer-events:auto}
+  .hpbar{position:relative;width:120px;height:18px;border-radius:9px;overflow:hidden;
+    border:1px solid var(--stroke);background:rgba(11,14,19,.7);backdrop-filter:blur(8px)}
+  .hpfill{position:absolute;inset:0;width:100%;transform-origin:left;background:linear-gradient(90deg,#34e0c4,#9be86f);transition:width .15s}
+  .hptxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;color:#04201b;font-weight:700}
+  .iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--stroke);
+    background:var(--panel);backdrop-filter:blur(10px);color:var(--ink);font-size:17px;cursor:pointer}
+  .iconbtn:active{transform:scale(.92)}
+  .upbtn{flex:1;height:46px;border-radius:12px;border:1px dashed var(--stroke);background:rgba(255,255,255,.03);
+    color:var(--ink);font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .upbtn:active{transform:scale(.98)}
   .joy{width:130px;height:130px;border-radius:50%;position:relative;
     background:radial-gradient(circle at 50% 50%,rgba(20,26,34,.55),rgba(11,14,19,.75));
     border:1px solid var(--stroke);backdrop-filter:blur(10px);touch-action:none}
@@ -100,6 +116,15 @@
     <div class="st" id="mpst">Status: solo (belum konek)</div>
   </div>
 
+  <div class="mp" style="margin-top:14px">
+    <div class="lbl">Model mobil (opsional)</div>
+    <div class="row">
+      <label class="upbtn" for="glbfile">📁 Upload .glb / .gltf</label>
+      <input id="glbfile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" hidden />
+    </div>
+    <div class="st" id="upst">Pakai mobil bawaan. Modelmu hanya tampil di layarmu.</div>
+  </div>
+
   <button class="start" id="start">Mulai AR</button>
   <div class="err" id="err"></div>
 </div>
@@ -117,13 +142,15 @@
     <button class="place" id="place" disabled>Taruh mobil</button>
   </div>
 
+  <div class="topctrl" id="topctrl">
+    <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
+    <button class="iconbtn" id="mute">🔊</button>
+    <button class="iconbtn" id="repark">↺</button>
+  </div>
+
   <div class="drivebar" id="drivebar">
-    <div class="joy" id="joy"><div class="nub" id="nub"></div></div>
-    <div class="rcol">
-      <button class="rbtn boost" id="boost">⚡ Boost</button>
-      <button class="rbtn" id="mute">🔊 Suara</button>
-      <button class="rbtn" id="repark">↺ Ulang</button>
-    </div>
+    <div class="joy" id="joyL"><div class="nub" id="nubL"></div><span class="jlbl">STEER</span></div>
+    <div class="joy" id="joyR"><div class="nub" id="nubR"></div><span class="jlbl">GAS · REM</span></div>
   </div>
 </div>
 
@@ -151,8 +178,9 @@ const PEER_CONFIG = null;
 const $=id=>document.getElementById(id);
 const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
-const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar');
-const joy=$('joy'),nub=$('nub'),boostBtn=$('boost'),muteBtn=$('mute'),reparkBtn=$('repark');
+const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
+const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark');
+const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst');
 const roomIn=$('room'),hostBtn=$('host'),joinBtn=$('join'),mpst=$('mpst'),nameIn=$('pname');
 
 let renderer,scene,camera,reticle,controller;
@@ -162,6 +190,12 @@ const clock=new THREE.Clock();
 
 let speed=0,heading=0,steerInput=0,throttleInput=0,boost=1,drifting=false;
 const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0.022,CAR_R=0.06;
+
+// health / combat
+let ownHP=100, dead=false, lastHitT=0, lastDmgT=0;
+const HIT_COOLDOWN=450;     // ms between damage events
+// uploaded model (local only)
+let uploadedGlb=null;       // ArrayBuffer of user .glb
 
 const arenaCenter=new THREE.Vector3();
 const ARENA_RADIUS=1.1,N_OBSTACLES=5;
@@ -260,6 +294,16 @@ function hashCode(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeA
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 let rng=Math.random;
 
+/* ---------- GLB uploader (local only) ---------- */
+glbfile.addEventListener('change',async e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  try{
+    uploadedGlb=await f.arrayBuffer();
+    upst.innerHTML='Model: <b style="color:var(--lock)">'+f.name+'</b> (hanya di layarmu)';
+    if(car){ scene.remove(car); car=null; }   // rebuild on next place
+  }catch(err){ upst.textContent='Gagal baca file: '+err.message; uploadedGlb=null; }
+});
+
 /* ---------- start AR ---------- */
 startBtn.addEventListener('click',startAR);
 async function startAR(){
@@ -303,7 +347,8 @@ function initThree(){
   placeBtn.addEventListener('click',onPrimary);
   reparkBtn.addEventListener('click',repark);
   muteBtn.addEventListener('click',toggleMute);
-  setupJoystick(); setupBoost();
+  setupJoystick(joyL,nubL,'steer');
+  setupJoystick(joyR,nubR,'gas');
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 }
 
@@ -336,24 +381,50 @@ async function buildGlbCar(){
   g.userData.all =['wheel_FL','wheel_FR','wheel_RL','wheel_RR'].map(n=>g.getObjectByName(n)).filter(Boolean);
   return g;
 }
+function buildUploadedCar(){
+  return new Promise((resolve,reject)=>{
+    new GLTFLoader().parse(uploadedGlb,'',gltf=>{
+      const model=gltf.scene;
+      // auto-fit: scale so footprint ~0.18 m, then drop onto ground
+      let box=new THREE.Box3().setFromObject(model), size=new THREE.Vector3(); box.getSize(size);
+      const s=0.18/Math.max(size.x,size.z,1e-3); model.scale.setScalar(s);
+      box=new THREE.Box3().setFromObject(model); model.position.y-=box.min.y;
+      const g=new THREE.Group(); g.add(model);
+      g.userData.front=['wheel_FL','wheel_FR'].map(n=>g.getObjectByName(n)).filter(Boolean);
+      g.userData.all =['wheel_FL','wheel_FR','wheel_RL','wheel_RR'].map(n=>g.getObjectByName(n)).filter(Boolean);
+      resolve(g);
+    }, err=>reject(err));
+  });
+}
+async function buildCar(color){
+  if(uploadedGlb){ try{ return await buildUploadedCar(); }catch(e){ upst.textContent='Model gagal dimuat, pakai bawaan.'; uploadedGlb=null; } }
+  if(USE_GLB) return await buildGlbCar();
+  return buildProceduralCar(color);
+}
 
 /* ---------- name labels (billboard sprites) ---------- */
 function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
-function makeLabel(text){
-  const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
+function makeLabel(text,hp){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=84;
   const ctx=cv.getContext('2d');
-  const draw=t=>{ ctx.clearRect(0,0,256,64);
-    ctx.fillStyle='rgba(11,14,19,0.74)'; roundRect(ctx,8,14,240,38,12); ctx.fill();
+  const draw=(t,h)=>{ ctx.clearRect(0,0,256,84);
+    ctx.fillStyle='rgba(11,14,19,0.74)'; roundRect(ctx,8,6,240,40,12); ctx.fill();
     ctx.fillStyle='#eef2f6'; ctx.font='600 26px system-ui,-apple-system,sans-serif';
-    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,128,34); };
-  draw(text);
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,128,27);
+    if(h!=null){ // health bar
+      ctx.fillStyle='rgba(11,14,19,0.6)'; roundRect(ctx,28,56,200,16,8); ctx.fill();
+      const w=Math.max(0,Math.min(1,h/100))*192;
+      ctx.fillStyle = h>50?'#34e0c4':h>25?'#ffb020':'#ff5a44';
+      roundRect(ctx,32,58,w,12,6); ctx.fill();
+    } };
+  draw(text,hp);
   const tex=new THREE.CanvasTexture(cv); tex.anisotropy=4;
   const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));
-  spr.scale.set(0.13,0.0325,1); spr.position.set(0,0.13,0); spr.renderOrder=10;
-  spr.userData.redraw=t=>{draw(t);tex.needsUpdate=true;};
+  spr.scale.set(0.15,0.0492,1); spr.position.set(0,0.14,0); spr.renderOrder=10;
+  spr.userData.redraw=(t,h)=>{draw(t,h);tex.needsUpdate=true;};
   return spr;
 }
-function addLabel(group,text){ const l=makeLabel(text); group.add(l); group.userData.label=l; group.userData.labelText=text; }
+function addLabel(group,text,hp){ const l=makeLabel(text,hp); group.add(l); group.userData.label=l; group.userData.labelText=text; group.userData.labelHp=hp; }
 
 /* ---------- tap handler: calibrate (MP) or place (SP) ---------- */
 function onSelect(){
@@ -377,17 +448,16 @@ function calibrateTap(){
 }
 
 async function placeCar(refMatrixObj){
-  if(building) return;
-  if(!car){ building=true; car=USE_GLB?await buildGlbCar():buildProceduralCar(); frontWheels=car.userData.front; allWheels=car.userData.all; scene.add(car); building=false; }
-  car.position.setFromMatrixPosition(refMatrixObj.matrix);
-  arenaCenter.copy(car.position);
+  arenaCenter.setFromMatrixPosition(refMatrixObj.matrix);
   startDriving();
 }
 
 async function startDriving(){
-  if(!car){ building=true; car=USE_GLB?await buildGlbCar():buildProceduralCar(); frontWheels=car.userData.front; allWheels=car.userData.all; scene.add(car); building=false; }
+  if(building) return;
+  if(!car){ building=true; car=await buildCar(); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
-  if(isMP && !car.userData.label) addLabel(car, myName);
+  ownHP=100; dead=false; updateHpBar();
+  if(isMP){ if(!car.userData.label) addLabel(car, myName); topctrl.style.display='flex'; }
   buildArena(); spawnObstacles();
   bottomwrap.style.display='none'; drivebar.style.display='flex';
   dot.className='dot drive'; statusT.textContent= isMP?'Balapan':'Mengemudi'; hint.classList.add('hide');
@@ -398,7 +468,7 @@ function repark(){
   carPlaced=false; speed=0; steerInput=0; throttleInput=0; resetNub(); calA=null;
   if(isMP){ broadcast({t:'bye',id:myId}); calib=null; placeBtn.textContent='Set titik A'; }
   if(car)car.visible=false; clearWorld();
-  drivebar.style.display='none'; bottomwrap.style.display='flex';
+  drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none';
   dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
   hint.textContent= isMP?'Kalibrasi ulang: tap titik A bersama':'Gerakkan ponsel, lalu taruh ulang';
   hint.classList.remove('hide');
@@ -440,20 +510,40 @@ function applyRemote(d){
   let rc=remoteCars[d.id];
   if(!rc){
     const g=buildProceduralCar(0x4ab8ff); g.visible=true; scene.add(g);
-    addLabel(g, d.n||'Player');
+    addLabel(g, d.n||'Player', d.hp!=null?d.hp:100);
     rc=remoteCars[d.id]={group:g,target:{x:d.x,z:d.z,h:d.h},cur:{x:d.x,z:d.z,h:d.h}};
     updatePlayers();
   }
-  if(d.n && rc.group.userData.labelText!==d.n){ rc.group.userData.label.userData.redraw(d.n); rc.group.userData.labelText=d.n; }
+  const ud=rc.group.userData, nm=d.n||ud.labelText, hp=d.hp!=null?d.hp:ud.labelHp;
+  if(nm!==ud.labelText || Math.abs((hp||0)-(ud.labelHp||0))>=2){
+    ud.label.userData.redraw(nm,hp); ud.labelText=nm; ud.labelHp=hp;
+  }
   rc.target.x=d.x; rc.target.z=d.z; rc.target.h=d.h;
 }
 function removeRemote(id){ const rc=remoteCars[id]; if(rc){scene.remove(rc.group);delete remoteCars[id];updatePlayers();} }
+
+/* ---------- combat / health ---------- */
+function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.width=h+'%'; hptxt.textContent=h; }
+function damage(amt){
+  if(dead) return;
+  ownHP=Math.max(0,ownHP-amt); lastDmgT=performance.now(); updateHpBar();
+  if(ownHP<=0) destroy();
+}
+function destroy(){
+  dead=true; speed=0; statusT.textContent='Hancur! Respawn…';
+  if(car) car.visible=false;
+  setTimeout(()=>{
+    if(!carPlaced) return;
+    car.position.copy(arenaCenter); heading=0; car.rotation.y=0; speed=0;
+    ownHP=100; dead=false; updateHpBar(); car.visible=true; statusT.textContent='Balapan';
+  },1500);
+}
 
 function sendState(){
   if(!calib||!carPlaced) return;
   const s=localToShared(car.position);
   const sh=heading - calib.yaw;           // local heading -> shared heading
-  broadcast({t:'state',id:myId,n:myName,x:s.x,z:s.z,h:sh});
+  broadcast({t:'state',id:myId,n:myName,hp:Math.round(ownHP),x:s.x,z:s.z,h:sh});
 }
 function updateRemotes(dt){
   for(const id in remoteCars){
@@ -466,25 +556,22 @@ function updateRemotes(dt){
   }
 }
 
-/* ---------- joystick + boost + mute ---------- */
-function setupJoystick(){
+/* ---------- joysticks (left=steer, right=gas/brake) + mute ---------- */
+function setupJoystick(el,nubEl,mode){
   const R=48; let active=false,id=null;
   const set=(cx,cy,rect)=>{
     let dx=cx-(rect.left+rect.width/2),dy=cy-(rect.top+rect.height/2);
     const d=Math.hypot(dx,dy); if(d>R){dx*=R/d;dy*=R/d;}
-    nub.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
-    steerInput=Math.max(-1,Math.min(1,dx/R)); throttleInput=Math.max(-1,Math.min(1,-dy/R));
+    if(mode==='steer'){ dy=0; steerInput=Math.max(-1,Math.min(1,dx/R)); }
+    else { dx=0; throttleInput=Math.max(-1,Math.min(1,-dy/R)); }   // up=gas, down=rem/mundur
+    nubEl.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
   };
-  joy.addEventListener('pointerdown',e=>{active=true;id=e.pointerId;joy.setPointerCapture(id);set(e.clientX,e.clientY,joy.getBoundingClientRect());});
-  joy.addEventListener('pointermove',e=>{if(active&&e.pointerId===id)set(e.clientX,e.clientY,joy.getBoundingClientRect());});
-  const up=e=>{if(active&&e.pointerId===id){active=false;steerInput=0;throttleInput=0;resetNub();}};
-  joy.addEventListener('pointerup',up); joy.addEventListener('pointercancel',up);
+  el.addEventListener('pointerdown',e=>{active=true;id=e.pointerId;el.setPointerCapture(id);set(e.clientX,e.clientY,el.getBoundingClientRect());});
+  el.addEventListener('pointermove',e=>{if(active&&e.pointerId===id)set(e.clientX,e.clientY,el.getBoundingClientRect());});
+  const up=e=>{if(active&&e.pointerId===id){active=false;if(mode==='steer')steerInput=0;else throttleInput=0;nubEl.style.transform='translate(-50%,-50%)';}};
+  el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
 }
-function resetNub(){nub.style.transform='translate(-50%,-50%)';}
-function setupBoost(){
-  const on=()=>{boost=1.9;boostBtn.style.opacity=.7;},off=()=>{boost=1;boostBtn.style.opacity=1;};
-  boostBtn.addEventListener('pointerdown',on);boostBtn.addEventListener('pointerup',off);boostBtn.addEventListener('pointercancel',off);
-}
+function resetNub(){ nubL.style.transform='translate(-50%,-50%)'; nubR.style.transform='translate(-50%,-50%)'; }
 
 /* ---------- ENGINE AUDIO (Web Audio synth, no files) ---------- */
 let audioCtx=null,master=null,osc1=null,osc2=null,sub=null,engGain=null,screechGain=null,muted=false;
@@ -523,7 +610,7 @@ function updateAudio(){
   screechGain.gain.setTargetAtTime(drifting?0.16*Math.min(1,sp+0.3):0,now,0.05);
 }
 function toggleMute(){
-  muted=!muted; muteBtn.textContent=muted?'🔇 Bisu':'🔊 Suara';
+  muted=!muted; muteBtn.textContent=muted?'🔇':'🔊';
   if(audioCtx) master.gain.setTargetAtTime(muted?0:0.9,audioCtx.currentTime,0.05);
 }
 
@@ -547,6 +634,7 @@ function render(t,frame){
 }
 
 function driveCar(dt){
+  if(dead){ speed=0; spdT.textContent='0.0 m/s'; return; }
   const target=(throttleInput>=0?MAX_SPEED:MAX_REV)*throttleInput*boost;
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
@@ -561,6 +649,22 @@ function driveCar(dt){
   for(const o of obstacles){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
     if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;speed*=-0.3;}
+  }
+  // car-vs-car collision + damage (multiplayer)
+  if(isMP){
+    const now=performance.now();
+    for(const id in remoteCars){
+      const g=remoteCars[id].group; if(!g.visible) continue;
+      const ox=car.position.x-g.position.x,oz=car.position.z-g.position.z,d=Math.hypot(ox,oz),min=CAR_R*2;
+      if(d<min&&d>1e-4){
+        const nx=ox/d,nz=oz/d;
+        car.position.x=g.position.x+nx*min; car.position.z=g.position.z+nz*min;
+        const impact=Math.abs(speed); speed*=-0.45;
+        if(now-lastHitT>HIT_COOLDOWN){ lastHitT=now; damage(5+impact*45); }
+      }
+    }
+    // slow regen after a few seconds without hits
+    if(!dead && ownHP<100 && now-lastDmgT>3000){ ownHP=Math.min(100,ownHP+dt*5); updateHpBar(); }
   }
   car.rotation.y=heading;
   const steerAngle=steerInput*STEER_MAX;
