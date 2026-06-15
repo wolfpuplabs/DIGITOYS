@@ -122,6 +122,19 @@
   .mp button.act{background:var(--lock);color:#04201b;border:none}
   .mp .st{margin-top:10px;font-size:12.5px;color:var(--muted)}
   .mp .st b{color:var(--lock)}
+  .modes{display:flex;gap:8px;margin-top:12px}
+  .modebtn{flex:1;height:42px !important;padding:0 6px !important;font-size:12.5px !important;
+    border-radius:12px !important;opacity:.55;transition:opacity .12s,border-color .12s}
+  .modebtn.on{opacity:1;border-color:var(--lock) !important;background:rgba(52,224,196,.12) !important;color:var(--ink) !important}
+  .result{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;text-align:center;background:rgba(6,8,11,.72);backdrop-filter:blur(6px);padding:24px}
+  .result.show{display:flex}
+  .result .big{font-family:var(--sans);font-weight:800;font-size:34px;letter-spacing:-.02em;color:var(--signal)}
+  .result .big.win{color:var(--lock)} .result .big.champ{color:#ffd24a}
+  .result .sub{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .result .cd{font-family:var(--mono);font-size:12px;color:var(--ink);opacity:.7;margin-top:6px}
+  .result .again{margin-top:14px;height:46px;padding:0 22px;border-radius:14px;border:none;
+    background:var(--lock);color:#04201b;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;display:none}
   .err{display:none;margin-top:18px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,107,74,.4);
     background:rgba(255,107,74,.08);color:#ffb9a8;font-size:13px;line-height:1.5}
   .err b{color:var(--signal)}
@@ -142,6 +155,12 @@
     <div class="row">
       <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
     </div>
+    <div class="modes" id="modes">
+      <button class="modebtn on" data-mode="survival">🏁 Survival</button>
+      <button class="modebtn" data-mode="deathmatch">💥 Deathmatch</button>
+      <button class="modebtn" data-mode="sumo">⭕ Sumo</button>
+    </div>
+    <div class="st" id="moderule">Last car standing — HP abis kalah ronde. First to 3 menang.</div>
     <div class="row">
       <button id="connect" class="act">Konek room</button>
     </div>
@@ -173,6 +192,13 @@
   <div class="hint" id="hint">Gerakkan ponsel untuk memindai</div>
 
   <div class="board" id="board"></div>
+
+  <div class="result" id="result">
+    <div class="big" id="resbig">—</div>
+    <div class="sub" id="ressub"></div>
+    <div class="cd" id="rescd"></div>
+    <button class="again" id="resagain">Main lagi</button>
+  </div>
 
   <div class="bottomwrap" id="bottomwrap">
     <button class="place" id="place" disabled>Taruh mobil</button>
@@ -232,6 +258,8 @@ const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),muteBtn=$('mute'),r
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
 const reloadBtn=$('reload'),exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
+const modeBtns=[...document.querySelectorAll('.modebtn')], moderule=$('moderule');
+const resultEl=$('result'),resBig=$('resbig'),resSub=$('ressub'),resCd=$('rescd'),resAgain=$('resagain');
 
 let renderer,scene,camera,reticle,controller,xrSession=null;
 let hitTestSource=null,localSpace=null,surfaceFound=false;
@@ -261,8 +289,18 @@ let isMP=false, ROOM='', ws=null, myId='', myName='Player', myScore=0;
 let isHost=false, peer=null; const conns={}; const boardData={};   // P2P mode
 let calib=null;            // {origin, ax, ay, az, yaw}
 let calA=null;             // first calibration point
-const remoteCars={};       // id -> {group,target,cur,building}
+const remoteCars={};       // id -> {group,target,cur,building,hp,el,speed}
 let netTimer=null;
+
+/* game modes / match state */
+let gameMode='survival';
+const MODE_RULE={
+  survival:'Last car standing — HP abis kalah ronde. First to 3 menang.',
+  deathmatch:'Respawn terus. Pertama capai 8 takedown menang.',
+  sumo:'Tanpa HP — dorong lawan keluar ring. Last in ring menang. First to 3.'};
+const ROUND_TARGET=3, SCORE_TARGET=8;
+let eliminated=false, roundResolving=false, matchOver=false, roundPlayers=0;
+const wins={};             // id -> round wins
 
 /* ---------- support ---------- */
 async function checkSupport(){
@@ -282,6 +320,15 @@ checkSupport();
 
 /* ---------- multiplayer connect ---------- */
 connectBtn.addEventListener('click',connectServer);
+modeBtns.forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.mode===gameMode) return;
+  gameMode=b.dataset.mode; reflectMode();
+}));
+resAgain.addEventListener('click',()=>{ resetMatch(); resetRound(); });
+function reflectMode(){
+  modeBtns.forEach(x=>x.classList.toggle('on',x.dataset.mode===gameMode));
+  moderule.textContent=MODE_RULE[gameMode];
+}
 
 function connectServer(){
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -311,7 +358,7 @@ function connectP2P(code){
   });
 }
 function wireConn(c){
-  c.on('open',()=>{ conns[c.peer]=c; });
+  c.on('open',()=>{ conns[c.peer]=c; if(isHost){ try{c.send({t:'cfg',id:myId,mode:gameMode});}catch(e){} } });
   c.on('data',d=>onP2P(d,c));
   c.on('close',()=>{ delete conns[c.peer]; removeRemote(c.peer); delete boardData[c.peer]; renderBoardP2P(); });
 }
@@ -320,10 +367,18 @@ function onP2P(d,from){
   if(d.t==='state'){
     if(d.id!==myId){ applyRemote(d); boardData[d.id]={id:d.id,n:d.n||'Player',score:d.score||0}; renderBoardP2P(); }
     if(isHost){ for(const pid in conns) if(pid!==from.peer) try{conns[pid].send(d);}catch(e){} }   // relay
+  } else if(d.t==='cfg'){
+    if(!isHost && d.mode && d.mode!==gameMode){ gameMode=d.mode; reflectMode();
+      mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> · mode dari host: <b>'+gameMode+'</b>'; }
   } else if(d.t==='bye'){ removeRemote(d.id); delete boardData[d.id]; renderBoardP2P(); }
 }
 function p2pBroadcast(msg){ for(const pid in conns) try{conns[pid].send(msg);}catch(e){} }
-function renderBoardP2P(){ renderBoard([{id:myId,n:myName,score:myScore},...Object.values(boardData)]); }
+function renderBoardP2P(){
+  const useWins = isMP && gameMode!=='deathmatch';
+  const self={id:myId,n:myName,score: useWins?(wins[myId]||0):myScore};
+  const others=Object.values(boardData).map(p=>({id:p.id,n:p.n,score: useWins?(wins[p.id]||0):p.score}));
+  renderBoard([self,...others]);
+}
 
 /* ---------- AUTHORITATIVE (WebSocket server) ---------- */
 function connectWS(code){
@@ -361,7 +416,7 @@ function sendState(){
   if(!isMP||!calib||!carPlaced) return;
   const s=localToShared(car.position), sh=heading-calib.yaw;
   if(SERVER_URL){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({t:'state',x:s.x,z:s.z,h:sh,speed})); }
-  else { p2pBroadcast({t:'state',id:myId,n:myName,score:myScore,hp:Math.round(ownHP),x:s.x,z:s.z,h:sh,speed}); }
+  else { p2pBroadcast({t:'state',id:myId,n:myName,score:myScore,hp:Math.round(ownHP),el:eliminated,x:s.x,z:s.z,h:sh,speed}); }
 }
 
 function renderBoard(players){
@@ -580,8 +635,9 @@ async function startDriving(){
   if(building) return;
   if(!car){ building=true; car=await buildCar(); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
-  ownHP=100; dead=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
+  ownHP=100; dead=false; eliminated=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
   if(isMP && !car.userData.label){ addUnderGlow(car,0xff6b4a); addLabel(car, myName); }
+  if(isMP) resetMatch();
   topctrl.style.display='flex';                       // HP + nitro tampil di solo & MP
   buildArena(); spawnObstacles(); spawnPowerups();
   bottomwrap.style.display='none'; drivebar.style.display='flex';
@@ -590,7 +646,7 @@ async function startDriving(){
 }
 
 function repark(){
-  carPlaced=false; speed=0; resetControls(); calA=null;
+  carPlaced=false; speed=0; resetControls(); calA=null; if(isMP) resetMatch();
   if(isMP){ calib=null; placeBtn.textContent='Set titik A'; }
   if(car)car.visible=false; clearWorld();
   drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
@@ -707,6 +763,8 @@ async function applyRemote(d){
   }
   rc.group.visible = d.alive!==false;
   rc.speed = d.speed||0;
+  rc.hp = d.hp!=null?d.hp:rc.hp;
+  rc.el = !!d.el;
   rc.target.x=d.x; rc.target.z=d.z; rc.target.h=d.h;
 }
 function removeRemote(id){ const rc=remoteCars[id]; if(rc){ if(rc.group)scene.remove(rc.group); delete remoteCars[id]; } }
@@ -723,8 +781,81 @@ function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.widt
 function enterDead(){ dead=true; speed=0; statusT.textContent='Hancur! Respawn…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
 function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Balapan'; }
 // local combat (dipakai di mode P2P gratis; di mode WS damage diatur server)
-function localDamage(amt){ if(dead) return; ownHP=Math.max(0,ownHP-amt); updateHpBar(); if(ownHP<=0) localDestroy(); }
+function localDamage(amt){
+  if(dead||eliminated) return;
+  if(isMP && gameMode==='sumo') return;        // sumo: tidak ada damage HP, kalah = keluar ring
+  ownHP=Math.max(0,ownHP-amt); updateHpBar();
+  if(ownHP<=0) handleKO();
+}
 function localDestroy(){ enterDead(); setTimeout(()=>{ if(carPlaced){ ownHP=100; updateHpBar(); exitDead(); } },1500); }
+function handleKO(){                            // HP habis (survival/deathmatch) atau keluar ring (sumo)
+  if(!isMP || gameMode==='deathmatch'){ localDestroy(); return; }   // respawn
+  enterDead(); eliminated=true; statusT.textContent='KO — nonton ronde ini';   // survival/sumo: out
+}
+
+/* ---------- match: survival / deathmatch / sumo ---------- */
+function inRingShared(t){ return t && Math.hypot(t.x,t.z) < ARENA_RADIUS; }
+function resetMatch(){ matchOver=false; roundResolving=false; roundPlayers=0; eliminated=false;
+  for(const k in wins) delete wins[k]; renderBoardP2P(); hideResult(); }
+function resetRound(){
+  eliminated=false; dead=false; ownHP=100; nitro=100; shieldUntil=0; speed=0; throttleInput=0;
+  if(car){ const a=Math.random()*Math.PI*2, rr=0.45;          // sebar posisi biar tidak numpuk
+    car.position.set(arenaCenter.x+Math.cos(a)*rr, arenaCenter.y, arenaCenter.z+Math.sin(a)*rr);
+    heading=0; car.rotation.y=0; car.visible=true; }
+  updateHpBar(); updateNitroBar(); hideResult(); roundResolving=false; roundPlayers=0;
+  statusT.textContent='Balapan';
+}
+function updateMatch(){
+  if(!isMP || !carPlaced || matchOver) return;
+  const remoteIds=Object.keys(remoteCars).filter(id=>remoteCars[id].group);
+  roundPlayers=Math.max(roundPlayers, 1+remoteIds.length);
+
+  if(gameMode==='deathmatch'){
+    let best=myId, bestScore=myScore;
+    for(const id of remoteIds){ const s=boardData[id]?boardData[id].score:0; if(s>bestScore){bestScore=s;best=id;} }
+    if(bestScore>=SCORE_TARGET) endMatch(best);
+    return;
+  }
+  // survival / sumo: berbasis ronde
+  if(roundResolving || roundPlayers<2) return;
+  const active=[]; if(!eliminated) active.push(myId);
+  for(const id of remoteIds){ const rc=remoteCars[id];
+    const a = gameMode==='sumo' ? (!rc.el && inRingShared(rc.target)) : (!rc.el && (rc.hp==null||rc.hp>0));
+    if(a) active.push(id);
+  }
+  if(active.length<=1){
+    roundResolving=true;
+    const winner = active.length===1 ? active[0] : null;     // null = seri
+    if(winner){ wins[winner]=(wins[winner]||0)+1; renderBoardP2P(); }
+    if(winner && wins[winner]>=ROUND_TARGET){ endMatch(winner); }
+    else { showRoundResult(winner); setTimeout(()=>{ if(carPlaced&&!matchOver) resetRound(); }, 4200); }
+  }
+}
+function nameOf(id){ return id===myId ? myName : (boardData[id]?boardData[id].n:'Lawan'); }
+function showRoundResult(winnerId){
+  const you=winnerId===myId;
+  const title = winnerId ? (you?'KAMU MENANG RONDE!':nameOf(winnerId)+' menang ronde') : 'Seri!';
+  const w = winnerId ? (wins[winnerId]||0) : 0;
+  showResult(title, you?'win':'', winnerId?('Skor ronde '+nameOf(winnerId)+': '+w+' / '+ROUND_TARGET):'Tak ada yang bertahan', false);
+  countdownResult(4);
+}
+function endMatch(winnerId){
+  matchOver=true; roundResolving=true;
+  const you=winnerId===myId;
+  showResult(you?'🏆 KAMU JUARA!':'🏆 '+nameOf(winnerId)+' juara', 'champ',
+    gameMode==='deathmatch'?'Match Deathmatch selesai':'Match selesai', true);
+  setTimeout(()=>{ if(carPlaced && matchOver){ resetMatch(); resetRound(); } }, 7000);
+}
+function showResult(title,cls,sub,champ){
+  resBig.textContent=title; resBig.className='big '+(cls||'');
+  resSub.textContent=sub||''; resCd.textContent='';
+  resAgain.style.display = champ?'inline-block':'none';
+  resultEl.classList.add('show');
+}
+function hideResult(){ resultEl.classList.remove('show'); resCd.textContent=''; }
+function countdownResult(sec){ let s=sec; resCd.textContent='Ronde baru dalam '+s+'…';
+  const iv=setInterval(()=>{ s--; if(s<=0||!resultEl.classList.contains('show')){clearInterval(iv);return;}
+    resCd.textContent='Ronde baru dalam '+s+'…'; },1000); }
 
 /* ---------- collision particles ---------- */
 const PARTICLES=[]; const PMAX=80; let pGeo=null;
@@ -862,6 +993,7 @@ function render(t,frame){
 
   if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); updatePowerups(dt); }
   if(isMP&&calib) updateRemotes(dt);
+  if(isMP&&carPlaced) updateMatch();
   updateParticles(dt);
   renderer.render(scene,camera);
 }
@@ -885,9 +1017,11 @@ function driveCar(dt){
   heading+=-steerInput*speed*TURN_RATE*dt;
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
-  // arena bounds
+  // arena bounds (sumo: keluar ring = KO; mode lain: mantul)
   let dx=car.position.x-arenaCenter.x,dz=car.position.z-arenaCenter.z,dist=Math.hypot(dx,dz),maxR=ARENA_RADIUS-CAR_R;
-  if(dist>maxR){const nx=dx/dist,nz=dz/dist;car.position.x=arenaCenter.x+nx*maxR;car.position.z=arenaCenter.z+nz*maxR;speed*=-0.35;}
+  if(isMP && gameMode==='sumo'){
+    if(!eliminated && dist>ARENA_RADIUS+0.03){ spawnBurst(car.position,0xffd24a,20,1.2); handleKO(); return; }
+  } else if(dist>maxR){const nx=dx/dist,nz=dz/dist;car.position.x=arenaCenter.x+nx*maxR;car.position.z=arenaCenter.z+nz*maxR;speed*=-0.35;}
   // obstacle collision (+ damage saat kena cone)
   for(const o of obstacles){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
