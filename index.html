@@ -71,6 +71,17 @@
   .hpfill{position:absolute;inset:0;width:100%;transform-origin:left;background:linear-gradient(90deg,#34e0c4,#9be86f);transition:width .15s}
   .hptxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-family:var(--mono);font-size:10px;color:#04201b;font-weight:700}
+  .nbar{position:relative;width:84px;height:18px;border-radius:9px;overflow:hidden;
+    border:1px solid var(--stroke);background:rgba(11,14,19,.7);backdrop-filter:blur(8px)}
+  .nfill{position:absolute;inset:0;width:100%;background:linear-gradient(90deg,#4ab8ff,#8fd6ff);transition:width .1s}
+  .ntxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:9px;color:#04203a;font-weight:700;letter-spacing:.08em}
+  .nitrobtn{align-self:flex-end;width:74px;height:74px;border-radius:50%;border:none;cursor:pointer;
+    background:linear-gradient(180deg,#8fd6ff,#4ab8ff);color:#04203a;font-family:var(--sans);
+    font-weight:800;font-size:11px;line-height:1.1;box-shadow:0 4px 18px rgba(74,184,255,.45);
+    transition:transform .08s,filter .08s}
+  .nitrobtn:active{transform:scale(.92)} .nitrobtn.on{filter:brightness(1.3)}
+  .nitrobtn:disabled{filter:grayscale(.7) brightness(.7);box-shadow:none}
   .iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--stroke);
     background:var(--panel);backdrop-filter:blur(10px);color:var(--ink);font-size:17px;cursor:pointer}
   .iconbtn:active{transform:scale(.92)}
@@ -169,6 +180,7 @@
 
   <div class="topctrl" id="topctrl">
     <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
+    <div class="nbar" id="nbar"><div class="nfill" id="nfill"></div><span class="ntxt">NITRO</span></div>
     <button class="iconbtn" id="mute">🔊</button>
     <button class="iconbtn" id="repark">↺</button>
   </div>
@@ -178,7 +190,8 @@
       <button class="pedal gas" id="gas">GAS</button>
       <button class="pedal brake" id="brake">REM</button>
     </div>
-    <div class="wheel" id="wheel" title="Putar untuk belok">
+    <button class="nitrobtn" id="nitro">⚡<br>NITRO</button>
+    <div class="wheel" id="wheel" title="Geser untuk belok">
       <svg viewBox="0 0 100 100" width="100%" height="100%">
         <circle cx="50" cy="50" r="44" fill="none" stroke="#ff6b4a" stroke-width="7" opacity="0.95"/>
         <circle cx="50" cy="50" r="13" fill="#ff6b4a"/>
@@ -215,7 +228,7 @@ const $=id=>document.getElementById(id);
 const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players');
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
-const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),muteBtn=$('mute'),reparkBtn=$('repark');
+const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),muteBtn=$('mute'),reparkBtn=$('repark'),nitroBtn=$('nitro'),nfill=$('nfill');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
 const reloadBtn=$('reload'),exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
@@ -232,6 +245,8 @@ const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
 let wheelAngle=0, wheelDragging=false;   // setir putar
 const WHEEL_MAX=140;                     // derajat putaran maksimum = belok penuh
+let nitro=100, nitroHeld=false, shieldUntil=0, lastObsHitT=0;   // nitro / shield / damage cooldown
+const powerups=[]; let shieldMesh=null;  // power-up items + shield visual
 const HIT_COOLDOWN=450;     // ms between damage events
 // uploaded model (local only)
 let uploadedGlb=null;       // ArrayBuffer of user .glb
@@ -565,9 +580,10 @@ async function startDriving(){
   if(building) return;
   if(!car){ building=true; car=await buildCar(); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
-  ownHP=100; dead=false; myScore=0; updateHpBar();
-  if(isMP){ if(!car.userData.label){ addUnderGlow(car,0xff6b4a); addLabel(car, myName); } topctrl.style.display='flex'; }
-  buildArena(); spawnObstacles();
+  ownHP=100; dead=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
+  if(isMP && !car.userData.label){ addUnderGlow(car,0xff6b4a); addLabel(car, myName); }
+  topctrl.style.display='flex';                       // HP + nitro tampil di solo & MP
+  buildArena(); spawnObstacles(); spawnPowerups();
   bottomwrap.style.display='none'; drivebar.style.display='flex';
   dot.className='dot drive'; statusT.textContent= isMP?'Balapan':'Mengemudi'; hint.classList.add('hide');
   if(isMP && !netTimer){ netTimer=setInterval(sendState,60); }
@@ -606,8 +622,67 @@ function spawnObstacles(){
 }
 function clearObstacles(){obstacles.forEach(o=>scene.remove(o));obstacles.length=0;}
 function clearMarks(){marks.forEach(m=>scene.remove(m));marks.length=0;}
-function clearWorld(){ if(arenaRing){scene.remove(arenaRing);arenaRing=null;} clearObstacles(); clearMarks();
+function clearPowerups(){ powerups.forEach(p=>{ if(p.timer)clearTimeout(p.timer); scene.remove(p.mesh); }); powerups.length=0; }
+function clearWorld(){ if(arenaRing){scene.remove(arenaRing);arenaRing=null;} clearObstacles(); clearMarks(); clearPowerups();
+  if(shieldMesh) shieldMesh.visible=false;
   for(const id in remoteCars) removeRemote(id); }
+
+/* ---------- power-ups (HP / Nitro / Shield) ---------- */
+const PU_TYPES={ hp:{color:0x34e0c4}, nitro:{color:0x4ab8ff}, shield:{color:0xffd24a} };
+function makePowerup(type){
+  const g=new THREE.Group();
+  const col=PU_TYPES[type].color;
+  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(0.035,0),
+    new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.6,roughness:.3,metalness:.4}));
+  g.add(core);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.05,0.062,24).rotateX(-Math.PI/2),
+    new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.6,side:THREE.DoubleSide}));
+  ring.position.y=-0.03; g.add(ring);
+  g.userData.type=type; g.userData.core=core;
+  return g;
+}
+function placePowerup(p){
+  const a=Math.random()*Math.PI*2, r=0.35+Math.random()*(ARENA_RADIUS-0.5);
+  if(calib){ const lp=sharedToLocal(Math.cos(a)*r,Math.sin(a)*r); p.mesh.position.set(lp.x,arenaCenter.y+0.06,lp.z); }
+  else p.mesh.position.set(arenaCenter.x+Math.cos(a)*r,arenaCenter.y+0.06,arenaCenter.z+Math.sin(a)*r);
+  p.mesh.visible=true; p.type=p.mesh.userData.type;
+}
+function spawnPowerups(){
+  clearPowerups();
+  const types=['hp','nitro','shield'];
+  for(const t of types){ const mesh=makePowerup(t); scene.add(mesh); const p={mesh,type:t,timer:null}; powerups.push(p); placePowerup(p); }
+  // shield bubble (follows car)
+  if(!shieldMesh){
+    shieldMesh=new THREE.Mesh(new THREE.SphereGeometry(0.11,16,12),
+      new THREE.MeshBasicMaterial({color:0xffd24a,transparent:true,opacity:.22,depthWrite:false}));
+    shieldMesh.visible=false; scene.add(shieldMesh);
+  }
+}
+function updatePowerups(dt){
+  const t=performance.now()/1000;
+  for(const p of powerups){
+    if(!p.mesh.visible) continue;
+    p.mesh.userData.core.rotation.y+=dt*2; p.mesh.userData.core.rotation.x+=dt*1.2;
+    p.mesh.position.y = arenaCenter.y+0.06+Math.sin(t*2.5+p.mesh.position.x*5)*0.012;
+    if(carPlaced&&!dead&&car){
+      const dx=car.position.x-p.mesh.position.x, dz=car.position.z-p.mesh.position.z;
+      if(Math.hypot(dx,dz)<0.09) collectPowerup(p);
+    }
+  }
+  // shield bubble follows car
+  if(shieldMesh){ const on=performance.now()<shieldUntil;
+    shieldMesh.visible = on && carPlaced && !dead;
+    if(shieldMesh.visible){ shieldMesh.position.copy(car.position); shieldMesh.position.y=arenaCenter.y+0.05; } }
+}
+function collectPowerup(p){
+  spawnBurst(p.mesh.position, PU_TYPES[p.type].color, 16, 1);
+  if(p.type==='nitro'){ nitro=100; updateNitroBar(); }
+  else if(p.type==='shield'){ shieldUntil=performance.now()+6000; }
+  else if(p.type==='hp' && !SERVER_URL){ ownHP=Math.min(100,ownHP+35); updateHpBar(); }
+  p.mesh.visible=false;
+  p.timer=setTimeout(()=>{ if(carPlaced) placePowerup(p); }, 8000);   // respawn di titik baru
+}
+function shielded(){ return performance.now()<shieldUntil; }
 function dropMark(localX){
   const p=car.localToWorld(new THREE.Vector3(localX,0.0015,-0.062));
   let m; if(marks.length>=MAX_MARKS){m=marks.shift();}else{m=new THREE.Mesh(markGeo,markMat);scene.add(m);}
@@ -716,13 +791,18 @@ function setupControls(){
     wheelAngle=steerInput*WHEEL_MAX; });
   const release=e=>{ if(e.pointerId===id){ wheelDragging=false; id=null; } };
   wheelEl.addEventListener('pointerup',release); wheelEl.addEventListener('pointercancel',release);
+
+  // nitro: tahan untuk boost (selama nitro masih ada)
+  nitroBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); nitroHeld=true; nitroBtn.classList.add('on'); });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>nitroBtn.addEventListener(ev,()=>{ nitroHeld=false; nitroBtn.classList.remove('on'); }));
 }
+function updateNitroBar(){ const n=Math.max(0,Math.round(nitro)); nfill.style.width=n+'%'; nitroBtn.disabled = nitro<5; }
 function updateWheel(dt){
   if(!wheelDragging){ wheelAngle += (0-wheelAngle)*Math.min(1,dt*10); if(Math.abs(wheelAngle)<0.5) wheelAngle=0;
     steerInput=wheelAngle/WHEEL_MAX; }
   wheelEl.style.transform = `rotate(${wheelAngle}deg)`;
 }
-function resetControls(){ wheelAngle=0; steerInput=0; throttleInput=0;
+function resetControls(){ wheelAngle=0; steerInput=0; throttleInput=0; nitroHeld=false;
   gasBtn.classList.remove('on'); brakeBtn.classList.remove('on'); wheelEl.style.transform='rotate(0deg)'; }
 
 /* ---------- ENGINE AUDIO (Web Audio synth, no files) ---------- */
@@ -780,7 +860,7 @@ function render(t,frame){
       if(surfaceFound){ surfaceFound=false; dot.className='dot searching'; statusT.textContent='Mencari permukaan…'; placeBtn.disabled=true; } }
   } else if(carPlaced){ reticle.visible=false; }
 
-  if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); }
+  if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); updatePowerups(dt); }
   if(isMP&&calib) updateRemotes(dt);
   updateParticles(dt);
   renderer.render(scene,camera);
@@ -788,6 +868,15 @@ function render(t,frame){
 
 function driveCar(dt){
   if(dead){ speed=0; spdT.textContent='0.0 m/s'; return; }
+  // nitro boost
+  const boosting = nitroHeld && nitro>0;
+  boost = boosting ? 1.9 : 1;
+  if(boosting){ nitro=Math.max(0,nitro-dt*32); if(nitro<=0)nitroHeld=false; }
+  else { nitro=Math.min(100,nitro+dt*7); }
+  updateNitroBar();
+  if(boosting && Math.abs(speed)>0.25 && markTick%3===0){    // semburan nitro di belakang
+    spawnBurst(car.localToWorld(new THREE.Vector3(0,0.02,-0.09)),0x4ab8ff,2,0.5);
+  }
   const target=(throttleInput>=0?MAX_SPEED:MAX_REV)*throttleInput*boost;
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
@@ -799,11 +888,15 @@ function driveCar(dt){
   // arena bounds
   let dx=car.position.x-arenaCenter.x,dz=car.position.z-arenaCenter.z,dist=Math.hypot(dx,dz),maxR=ARENA_RADIUS-CAR_R;
   if(dist>maxR){const nx=dx/dist,nz=dz/dist;car.position.x=arenaCenter.x+nx*maxR;car.position.z=arenaCenter.z+nz*maxR;speed*=-0.35;}
-  // obstacle collision
+  // obstacle collision (+ damage saat kena cone)
   for(const o of obstacles){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
     if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;
       if(Math.abs(speed)>0.1) spark((car.position.x+o.position.x)/2,(car.position.z+o.position.z)/2,0xffae42);
+      const nowO=performance.now();
+      if(!SERVER_URL && !shielded() && Math.abs(speed)>0.15 && nowO-lastObsHitT>HIT_COOLDOWN){
+        lastObsHitT=nowO; localDamage(4+Math.abs(speed)*25);
+      }
       speed*=-0.3;}
   }
   // car-vs-car: bounce + (mode P2P) damage & skor lokal. Di mode WS, server yang putuskan.
@@ -821,7 +914,7 @@ function driveCar(dt){
           lastHitT=now;
           const rs=remoteCars[id].speed||0;
           if(Math.abs(speed)>=Math.abs(rs)){ myScore++; renderBoardP2P(); }
-          localDamage(5+Math.abs(speed)*45);
+          if(!shielded()) localDamage(5+Math.abs(speed)*45);
         }
       }
     }
