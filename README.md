@@ -26,6 +26,15 @@ rc-arena/
 - **Solo / multiplayer broker publik:** langsung jalan, tidak perlu server.
 - **Multiplayer:** isi nama + kode room sama, satu "Host", sisanya "Gabung",
   lalu kalibrasi 2 titik (tap titik A & B yang sama secara fisik).
+- **Kontrol:** joystick kiri = steering, joystick kanan = gas (atas) / rem-mundur (bawah).
+- **Tempur (multiplayer):** mobil bisa tabrakan, mengurangi health; health 0 → respawn.
+  Ada health bar di atas tiap mobil + bar di pojok kanan atas.
+
+## Upload model sendiri (di app, opsional)
+Tombol "Upload .glb" di layar awal: pilih file .glb/.gltf, otomatis di-resize ke
+ukuran arena. Catatan: model ini **hanya tampil di layarmu** — lawan tetap lihat
+mobil default (kirim file glb lewat P2P terlalu berat). Roda ikut beranimasi hanya
+jika node-nya bernama `wheel_FL / wheel_FR / wheel_RL / wheel_RR`.
 
 ## Pakai server sendiri (opsional)
 Folder `peerserver/` **tidak** jalan di GitHub Pages (Pages cuma file statis).
