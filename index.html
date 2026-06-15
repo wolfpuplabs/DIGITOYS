@@ -155,7 +155,7 @@
 
   <div class="topctrl" id="topctrl">
     <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div>
-    <button class="iconbtn" id="steermode" title="Mode setir">👁</button>
+    <button class="iconbtn" id="steermode" title="Mode setir">🚗</button>
     <button class="iconbtn" id="mute">🔊</button>
     <button class="iconbtn" id="repark">↺</button>
   </div>
@@ -206,7 +206,7 @@ const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0
 
 // health / combat
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
-let steerMode='view';   // default: ikut layar (paling mirip car game biasa). 'consistent' | 'realistic' | 'view'
+let steerMode='consistent';   // 'consistent' (default, andal, bisa 360) | 'realistic' (mundur kebalik)
 const HIT_COOLDOWN=450;     // ms between damage events
 // uploaded model (local only)
 let uploadedGlb=null;       // ArrayBuffer of user .glb
@@ -417,12 +417,11 @@ function initThree(){
   reparkBtn.addEventListener('click',repark);
   muteBtn.addEventListener('click',toggleMute);
   steerBtn.addEventListener('click',()=>{
-    steerMode = steerMode==='consistent' ? 'realistic' : steerMode==='realistic' ? 'view' : 'consistent';
-    const g = {consistent:'🚗',realistic:'🏎️',view:'👁'}[steerMode];
-    const t = {consistent:'Setir: Konsisten (kanan=kanan, bisa 360)',
-               realistic:'Setir: Realistis (mundur kebalik)',
-               view:'Setir: Ikut Layar'}[steerMode];
-    steerBtn.textContent=g; statusT.textContent=t;
+    steerMode = steerMode==='consistent' ? 'realistic' : 'consistent';
+    steerBtn.textContent = steerMode==='consistent' ? '🚗' : '🏎️';
+    statusT.textContent = steerMode==='consistent'
+      ? 'Setir: Konsisten (kanan=kanan, bisa 360)'
+      : 'Setir: Realistis (mundur kebalik)';
   });
   setupJoystick(joyL,nubL,'gas');
   setupJoystick(joyR,nubR,'steer');
@@ -755,18 +754,9 @@ function driveCar(dt){
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
   if(Math.abs(speed)<.001) speed=0;
-  // mode setir (bisa diganti via tombol di pojok kanan atas):
-  if(steerMode==='view'){            // ikut layar: kanan = ke kanan layar (maju/mundur), 360 ke arahmu terbatas
-    let eff=steerInput;
-    const camDir=new THREE.Vector3(); camera.getWorldDirection(camDir); camDir.y=0;
-    const vel=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading)).multiplyScalar(speed);
-    if(vel.dot(camDir)<0) eff=-steerInput;
-    heading+=eff*Math.abs(speed)*TURN_RATE*dt;
-  } else if(steerMode==='realistic'){ // RC realistis: mundur otomatis kebalik (maju & mundur berlawanan)
-    heading+=steerInput*speed*TURN_RATE*dt;
-  } else {                            // konsisten: kanan=belok kanan, maju & mundur sama, bisa 360 penuh
-    heading+=steerInput*Math.abs(speed)*TURN_RATE*dt;
-  }
+  // mode setir (tombol pojok kanan atas). Dua-duanya SELALU belok saat jalan.
+  if(steerMode==='realistic'){ heading+=steerInput*speed*TURN_RATE*dt; }        // mundur kebalik (RC asli)
+  else { heading+=steerInput*Math.abs(speed)*TURN_RATE*dt; }                    // konsisten: kanan=kanan, bisa 360
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds
