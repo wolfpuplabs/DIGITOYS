@@ -27,6 +27,9 @@
   .dot.locked,.dot.drive{background:var(--lock);box-shadow:0 0 12px var(--lock)}
   @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
   .players{color:var(--lock)} .spd{margin-left:auto;color:var(--ink);font-variant-numeric:tabular-nums}
+  .sysbtn{margin-left:8px;width:26px;height:26px;border-radius:8px;border:1px solid var(--stroke);
+    background:rgba(11,14,19,.6);color:var(--ink);font-size:13px;line-height:1;cursor:pointer;pointer-events:auto}
+  .sysbtn:active{transform:scale(.9)}
   .hint{position:absolute;left:50%;bottom:40%;transform:translateX(-50%);font-size:13px;text-align:center;
     background:var(--panel);border:1px solid var(--stroke);padding:9px 16px;border-radius:999px;
     backdrop-filter:blur(12px);transition:opacity .3s;max-width:80vw}
@@ -139,6 +142,8 @@
     <span id="status">Mencari permukaan…</span>
     <span class="players" id="players"></span>
     <span class="spd" id="spd">0.0 m/s</span>
+    <button class="sysbtn" id="reload" title="Muat ulang">⟳</button>
+    <button class="sysbtn" id="exit" title="Keluar AR">✕</button>
   </div>
   <div class="hint" id="hint">Gerakkan ponsel untuk memindai</div>
 
@@ -185,9 +190,10 @@ const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
 const joyL=$('joyL'),nubL=$('nubL'),joyR=$('joyR'),nubR=$('nubR'),muteBtn=$('mute'),reparkBtn=$('repark');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
+const reloadBtn=$('reload'),exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
 
-let renderer,scene,camera,reticle,controller;
+let renderer,scene,camera,reticle,controller,xrSession=null;
 let hitTestSource=null,localSpace=null,surfaceFound=false;
 let car=null,building=false,carPlaced=false,frontWheels=[],allWheels=[];
 const clock=new THREE.Clock();
@@ -319,6 +325,7 @@ async function startAR(){
     session=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:hud}});
   }catch(e){ showErr('<b>Gagal memulai AR.</b> Izin kamera + akses <b>HTTPS</b>. ('+e.message+')'); return; }
+  xrSession=session;
   gate.style.display='none'; hud.style.display='block';
   if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
   rng = isMP ? mulberry32(hashCode(ROOM)) : Math.random;
@@ -327,10 +334,23 @@ async function startAR(){
   localSpace=await session.requestReferenceSpace('local');
   const viewer=await session.requestReferenceSpace('viewer');
   hitTestSource=await session.requestHitTestSource({space:viewer});
-  session.addEventListener('end',()=>{ hud.style.display='none'; gate.style.display='flex';
-    hitTestSource=null; surfaceFound=false; if(netTimer){clearInterval(netTimer);netTimer=null;} });
+  session.addEventListener('end',()=>{
+    hud.style.display='none'; gate.style.display='flex';
+    hitTestSource=null; surfaceFound=false; xrSession=null;
+    if(netTimer){clearInterval(netTimer);netTimer=null;}
+    carPlaced=false; dead=false; calA=null; if(isMP) calib=null;
+    if(car) car.visible=false; clearWorld();
+    drivebar.style.display='none'; topctrl.style.display='none'; board.style.display='none';
+    bottomwrap.style.display='flex'; placeBtn.disabled=true;
+    placeBtn.textContent= isMP?'Set titik A':'Taruh mobil';
+    dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
+    hint.textContent='Gerakkan ponsel untuk memindai'; hint.classList.remove('hide');
+  });
   renderer.setAnimationLoop(render);
 }
+
+reloadBtn.addEventListener('click',()=>location.reload());
+exitBtn.addEventListener('click',()=>{ if(xrSession) xrSession.end(); });
 
 function initThree(){
   if(renderer) return;
@@ -679,7 +699,7 @@ function driveCar(dt){
   speed+=(target-speed)*ACCEL*dt;
   if(Math.abs(throttleInput)<.05) speed*=(1-2.5*dt);
   if(Math.abs(speed)<.001) speed=0;
-  heading+=steerInput*speed*TURN_RATE*dt;
+  heading+=steerInput*Math.abs(speed)*TURN_RATE*dt;   // abs() => belok konsisten saat maju & mundur
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds
