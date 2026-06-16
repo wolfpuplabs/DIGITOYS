@@ -110,7 +110,7 @@
     font-weight:600;font-size:13px;cursor:pointer}
   .rbtn:active{transform:scale(.95)} .boost{background:var(--signal);color:#1a0d09;border:none;font-weight:700}
   .gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;
-    justify-content:center;padding:30px 26px calc(env(safe-area-inset-bottom) + 28px);overflow-y:auto}
+    justify-content:flex-start;padding:calc(env(safe-area-inset-top) + 26px) 26px calc(env(safe-area-inset-bottom) + 40px);overflow-y:auto}
   .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--signal)}
   .gate h1{font-size:38px;line-height:1.02;font-weight:700;margin:12px 0 14px;letter-spacing:-.02em}
   .gate h1 em{font-style:normal;color:var(--signal)}
@@ -261,27 +261,27 @@
     <div class="kicker">WebXR · AR · Local Multiplayer</div>
     <h1 class="logo">RC&nbsp;ARENA</h1>
     <div class="flagband"></div>
-    <p>Solo langsung gas. Multiplayer: samakan kode room (host bagikan arena & mode). Main sendiri? Lawan bot.</p>
+    <p>Solo starts instantly. Multiplayer: everyone enters the same room code (the host shares the arena & mode). Playing alone? Race the bots.</p>
   </div>
 
   <div class="mp">
-    <div class="lbl">Multiplayer (gratis · tanpa server)</div>
+    <div class="lbl">Multiplayer (free · no server)</div>
     <div class="row">
-      <input id="pname" placeholder="nama kamu" maxlength="14" autocapitalize="words" autocomplete="off" />
+      <input id="pname" placeholder="your name" maxlength="14" autocapitalize="words" autocomplete="off" />
     </div>
     <div class="row">
-      <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
+      <input id="room" placeholder="room code, e.g. arena1" autocapitalize="off" autocomplete="off" />
     </div>
     <div class="modes" id="modes">
       <button class="modebtn on" data-mode="survival"><span class="mi">🏁</span>Survival</button>
       <button class="modebtn" data-mode="deathmatch"><span class="mi">💥</span>Deathmatch</button>
       <button class="modebtn" data-mode="sumo"><span class="mi">⭕</span>Sumo</button>
     </div>
-    <div class="st" id="moderule">Last car standing — HP abis kalah ronde. First to 3 menang.</div>
+    <div class="st" id="moderule">Last car standing — lose the round when HP hits 0. First to 3 wins.</div>
     <div class="row">
-      <button id="connect" class="act">Konek room</button>
+      <button id="connect" class="act">Join room</button>
     </div>
-    <div class="st" id="mpst">Status: solo (belum konek)</div>
+    <div class="st" id="mpst">Status: solo (not connected)</div>
   </div>
 
   <div class="mp" style="margin-top:14px">
@@ -291,53 +291,53 @@
       <span class="val" id="arenaVal">Ø 2.2 m</span>
     </div>
     <div class="seg" id="shapeSeg">
-      <button data-shape="circle" class="on">● Lingkaran</button>
-      <button data-shape="square">■ Kotak</button>
+      <button data-shape="circle" class="on">● Circle</button>
+      <button data-shape="square">■ Square</button>
     </div>
     <div class="arena-actions">
       <button id="openBuilder" class="prim">🧱 Arena Builder</button>
     </div>
-    <div class="st" id="arenaSt">Geser untuk besar/kecil. Builder: atur cone & simpan kode arena buat dibagikan.</div>
+    <div class="st" id="arenaSt">Slide to resize. Builder: place cones & save an arena code to share.</div>
   </div>
 
   <div class="mp" style="margin-top:14px">
-    <div class="lbl">Model mobil (opsional)</div>
+    <div class="lbl">Car model (optional)</div>
     <div class="row">
       <label class="upbtn" for="glbfile">📁 Upload .glb / .gltf</label>
       <input id="glbfile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" hidden />
     </div>
-    <div class="st" id="upst">Pakai mobil bawaan. Modelmu hanya tampil di layarmu.</div>
+    <div class="st" id="upst">Using the built-in car. Your model shows only on your screen.</div>
   </div>
 
   <div class="mp" style="margin-top:14px">
-    <div class="lbl">Latihan vs Bot (solo)</div>
+    <div class="lbl">Practice vs Bots (solo)</div>
     <div class="modes" id="botsel">
-      <button class="modebtn on" data-bots="0">Tanpa bot</button>
+      <button class="modebtn on" data-bots="0">No bots</button>
       <button class="modebtn" data-bots="1">1 bot</button>
-      <button class="modebtn" data-bots="2">2 bot</button>
+      <button class="modebtn" data-bots="2">2 bots</button>
     </div>
-    <div class="st">Bot pakai mode yang dipilih di atas. Aktif saat "Mulai AR" tanpa konek room.</div>
+    <div class="st">Bots use the mode picked above. Active when you hit "Start AR" without joining a room.</div>
   </div>
 
-  <button class="start" id="start">Mulai AR</button>
+  <button class="start" id="start">Start AR</button>
   <div class="err" id="err"></div>
 </div>
 
 <div class="builder" id="builder">
   <h2>Arena Builder</h2>
-  <div class="hintline">Tap kanvas = taruh cone · tap cone = hapus · geser cone = pindah. Simpan kodenya buat dibagikan.</div>
+  <div class="hintline">Tap canvas = add cone · tap cone = delete · drag cone = move. Save the code to share it.</div>
   <canvas id="bcanvas"></canvas>
   <div class="brow">
-    <button id="bClear">Kosongkan</button>
-    <button id="bRandom">Acak</button>
+    <button id="bClear">Clear</button>
+    <button id="bRandom">Random</button>
     <span style="flex:1"></span>
-    <button id="bCancel">Tutup</button>
-    <button id="bUse" class="go">Pakai arena</button>
+    <button id="bCancel">Close</button>
+    <button id="bUse" class="go">Use arena</button>
   </div>
   <div class="brow">
-    <input id="bCode" class="bcode" placeholder="kode arena (untuk dibagikan / ditempel)" autocapitalize="off" autocomplete="off" />
-    <button id="bCopy">Salin</button>
-    <button id="bLoad" class="prim">Muat</button>
+    <input id="bCode" class="bcode" placeholder="arena code (to share / paste)" autocapitalize="off" autocomplete="off" />
+    <button id="bCopy">Copy</button>
+    <button id="bLoad" class="prim">Load</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -345,13 +345,13 @@
 <div class="hud" id="hud" style="display:none">
   <div class="statusbar">
     <span class="dot searching" id="dot"></span>
-    <span id="status">Mencari permukaan…</span>
+    <span id="status">Looking for a surface…</span>
     <span class="players" id="players"></span>
     <span class="spd" id="spd">0.0 m/s</span>
-    <button class="sysbtn" id="reload" title="Muat ulang">⟳</button>
-    <button class="sysbtn" id="exit" title="Keluar AR">✕</button>
+    <button class="sysbtn" id="reload" title="Reload">⟳</button>
+    <button class="sysbtn" id="exit" title="Exit AR">✕</button>
   </div>
-  <div class="hint" id="hint">Gerakkan ponsel untuk memindai</div>
+  <div class="hint" id="hint">Move your phone to scan</div>
 
   <div class="board" id="board"></div>
 
@@ -359,11 +359,11 @@
     <div class="big" id="resbig">—</div>
     <div class="sub" id="ressub"></div>
     <div class="cd" id="rescd"></div>
-    <button class="again" id="resagain">Main lagi</button>
+    <button class="again" id="resagain">Play again</button>
   </div>
 
   <div class="bottomwrap" id="bottomwrap">
-    <button class="place" id="place" disabled>Taruh mobil</button>
+    <button class="place" id="place" disabled>Place car</button>
   </div>
 
   <div class="topctrl" id="topctrl">
@@ -375,11 +375,11 @@
 
   <div class="drivebar" id="drivebar">
     <div class="pedals">
-      <button class="pedal gas" id="gas">GAS</button>
-      <button class="pedal brake" id="brake">REM</button>
+      <button class="pedal gas" id="gas">GO</button>
+      <button class="pedal brake" id="brake">BRAKE</button>
     </div>
     <button class="nitrobtn" id="nitro">⚡<br>NITRO</button>
-    <div class="wheel" id="wheel" title="Geser untuk belok">
+    <div class="wheel" id="wheel" title="Drag to steer">
       <svg viewBox="0 0 100 100" width="100%" height="100%">
         <circle cx="50" cy="50" r="44" fill="none" stroke="#ff6b4a" stroke-width="7" opacity="0.95"/>
         <circle cx="50" cy="50" r="13" fill="#ff6b4a"/>
@@ -473,9 +473,9 @@ let netTimer=null;
 /* game modes / match state */
 let gameMode='survival';
 const MODE_RULE={
-  survival:'Last car standing — HP abis kalah ronde. First to 3 menang.',
-  deathmatch:'Respawn terus. Pertama capai 8 takedown menang.',
-  sumo:'Tanpa HP — dorong lawan keluar ring. Last in ring menang. First to 3.'};
+  survival:'Last car standing — lose the round when HP hits 0. First to 3 wins.',
+  deathmatch:'Respawn forever. First to 8 takedowns wins.',
+  sumo:'No HP — shove rivals out of the ring. Last one in wins. First to 3.'};
 const ROUND_TARGET=3, SCORE_TARGET=8;
 let eliminated=false, roundResolving=false, matchOver=false, roundPlayers=0;
 const wins={};             // id -> round wins
@@ -487,12 +487,12 @@ function inMatch(){ return isMP || bots.length>0; }   // ada lawan (MP atau bot)
 async function checkSupport(){
   try{
     if(!navigator.xr || typeof navigator.xr.isSessionSupported!=='function'){
-      showErr('<b>Browser ini tidak mendukung WebXR.</b> Buka di <b>Chrome di Android</b> (perangkat dengan ARCore). Browser di iPhone/iPad (Safari/Chrome/Firefox) belum mendukung WebXR.'); kill(); return;
+      showErr('<b>This browser does not support WebXR.</b> Open it in <b>Chrome on Android</b> (an ARCore device). Browsers on iPhone/iPad (Safari/Chrome/Firefox) do not support WebXR yet.'); kill(); return;
     }
     const ok=await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
-    if(!ok){ showErr('<b>Mode AR (immersive-ar) tidak didukung</b> di perangkat/browser ini. Pakai Chrome terbaru di Android + "Google Play Services for AR".'); kill(); }
+    if(!ok){ showErr('<b>AR mode (immersive-ar) is not supported</b> on this device/browser. Use the latest Chrome on Android + "Google Play Services for AR".'); kill(); }
   }catch(e){
-    showErr('<b>Browser ini tidak mendukung WebXR.</b> Buka di Chrome di Android (ARCore).'); kill();
+    showErr('<b>This browser does not support WebXR.</b> Open it in Chrome on Android (ARCore).'); kill();
   }
 }
 function showErr(m){errBox.innerHTML=m;errBox.style.display='block';}
@@ -522,8 +522,8 @@ function reflectArena(){
   arenaRange.value=ARENA_RADIUS;
   arenaVal.textContent='Ø '+(ARENA_RADIUS*2).toFixed(1)+' m';
   [...shapeSeg.children].forEach(b=>b.classList.toggle('on',b.dataset.shape===arenaShape));
-  arenaSt.textContent = customCones&&customCones.length ? ('Arena custom · '+customCones.length+' cone · Ø '+(ARENA_RADIUS*2).toFixed(1)+' m')
-    : 'Geser untuk besar/kecil. Builder: atur cone & simpan kode arena buat dibagikan.';
+  arenaSt.textContent = customCones&&customCones.length ? ('Arena custom · '+customCones.length+' cones · Ø '+(ARENA_RADIUS*2).toFixed(1)+' m')
+    : 'Slide to resize. Builder: place cones & save an arena code to share.';
 }
 arenaRange.addEventListener('input',()=>{ ARENA_RADIUS=+arenaRange.value; reflectArena(); });
 [...shapeSeg.children].forEach(b=>b.addEventListener('click',()=>{ arenaShape=b.dataset.shape; reflectArena(); }));
@@ -587,37 +587,37 @@ $('openBuilder').addEventListener('click',openBuilder);
 $('bCancel').addEventListener('click',closeBuilder);
 $('bClear').addEventListener('click',()=>{ builderCones=[]; drawBuilder(); bCode.value=encodeArena(); });
 $('bRandom').addEventListener('click',()=>{ builderCones=randomCones(); drawBuilder(); bCode.value=encodeArena(); });
-$('bUse').addEventListener('click',()=>{ customCones=builderCones.map(c=>({x:c.x,z:c.z})); reflectArena(); closeBuilder(); showToast('Arena dipakai ✓'); });
-$('bCopy').addEventListener('click',async()=>{ bCode.value=encodeArena(); try{ await navigator.clipboard.writeText(bCode.value); showToast('Kode arena disalin'); }catch(e){ bCode.select(); showToast('Tekan lama untuk copy'); } });
-$('bLoad').addEventListener('click',()=>{ const d=decodeArena(bCode.value); if(!d){ showToast('Kode tidak valid'); return; }
+$('bUse').addEventListener('click',()=>{ customCones=builderCones.map(c=>({x:c.x,z:c.z})); reflectArena(); closeBuilder(); showToast('Arena set ✓'); });
+$('bCopy').addEventListener('click',async()=>{ bCode.value=encodeArena(); try{ await navigator.clipboard.writeText(bCode.value); showToast('Arena code copied'); }catch(e){ bCode.select(); showToast('Long-press to copy'); } });
+$('bLoad').addEventListener('click',()=>{ const d=decodeArena(bCode.value); if(!d){ showToast('Invalid code'); return; }
   ARENA_RADIUS=Math.max(0.7,Math.min(2.2,d.r)); arenaShape=d.shape; builderCones=d.cones.map(clampConeInside); customCones=builderCones.map(c=>({x:c.x,z:c.z}));
-  reflectArena(); drawBuilder(); showToast('Arena dimuat'); });
+  reflectArena(); drawBuilder(); showToast('Arena loaded'); });
 window.addEventListener('resize',()=>{ if(builderEl.classList.contains('show')) sizeCanvas(); });
 reflectArena();
 
 function connectServer(){
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(!code){ mpst.innerHTML='Status: <b>isi kode room dulu</b>'; return; }
+  if(!code){ mpst.innerHTML='Status: <b>enter a room code first</b>'; return; }
   myName=(nameIn.value||'').trim().slice(0,14)||'Player';
   ROOM=code; isMP=true;
   if(SERVER_URL){ connectWS(code); }
   else if(typeof Peer!=='undefined'){ connectP2P(code); }
-  else { mpst.innerHTML='Status: <b>PeerJS gagal dimuat</b> (cek koneksi)'; isMP=false; }
+  else { mpst.innerHTML='Status: <b>PeerJS failed to load</b> (check connection)'; isMP=false; }
 }
 
 /* ---------- FREE P2P (PeerJS, no server) ---------- */
 function connectP2P(code){
   const roomId='rcarena-'+ROOM;
-  mpst.textContent='Status: mencari room…';
+  mpst.textContent='Status: finding room…';
   peer=new Peer(roomId);                                  // coba klaim room = jadi host
   peer.on('open',()=>{ isHost=true; myId=roomId;
-    mpst.innerHTML='Status: <b style="color:var(--lock)">HOST</b> room "'+code+'" — tunggu pemain'; });
+    mpst.innerHTML='Status: <b style="color:var(--lock)">HOST</b> room "'+code+'" — waiting for players'; });
   peer.on('connection',c=>wireConn(c));                   // host menerima pemain lain
   peer.on('error',e=>{
     if(e.type==='unavailable-id'){                        // room sudah ada -> gabung
       isHost=false; peer=new Peer();
       peer.on('open',gid=>{ myId=gid; wireConn(peer.connect(roomId,{reliable:false}));
-        mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
+        mpst.innerHTML='Status: <b style="color:var(--lock)">joined</b> "'+code+'"'; });
       peer.on('error',err=>{ mpst.innerHTML='Status: <b>'+err.type+'</b> — coba lagi'; });
     } else { mpst.innerHTML='Status: <b>'+e.type+'</b>'; }
   });
@@ -639,7 +639,7 @@ function onP2P(d,from){
       if(d.shape) arenaShape=d.shape;
       if(Array.isArray(d.cones)) customCones=d.cones.map(c=>({x:c[0],z:c[1]}));
       reflectMode(); reflectArena();
-      mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> · dari host: <b>'+gameMode+'</b>';
+      mpst.innerHTML='Status: <b style="color:var(--lock)">joined</b> · from host: <b>'+gameMode+'</b>';
     }
   } else if(d.t==='bye'){ removeRemote(d.id); delete boardData[d.id]; renderBoardP2P(); }
 }
@@ -656,16 +656,16 @@ function renderBoardP2P(){
 
 /* ---------- AUTHORITATIVE (WebSocket server) ---------- */
 function connectWS(code){
-  mpst.textContent='Status: menghubungkan…';
+  mpst.textContent='Status: connecting…';
   try{ ws=new WebSocket(SERVER_URL); }
   catch(e){ mpst.innerHTML='Status: <b>error</b> '+e.message; isMP=false; return; }
   ws.addEventListener('open',()=>{ ws.send(JSON.stringify({t:'join',room:ROOM,name:myName}));
-    mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> ke "'+code+'"'; });
+    mpst.innerHTML='Status: <b style="color:var(--lock)">joined</b> "'+code+'"'; });
   ws.addEventListener('message',ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
     if(m.t==='welcome'){ myId=m.id; }
     else if(m.t==='snap'){ onSnap(m.players); } });
-  ws.addEventListener('close',()=>{ mpst.innerHTML='Status: <b>terputus</b>'; });
-  ws.addEventListener('error',()=>{ mpst.innerHTML='Status: <b>gagal konek</b> — cek SERVER_URL / server'; });
+  ws.addEventListener('close',()=>{ mpst.innerHTML='Status: <b>disconnected</b>'; });
+  ws.addEventListener('error',()=>{ mpst.innerHTML='Status: <b>connection failed</b> — check SERVER_URL / server'; });
 }
 
 function onSnap(players){
@@ -700,7 +700,7 @@ function renderBoard(players){
     return '<div class="brow"'+me+'><span>'+esc(p.n)+(p.id===myId?' (kamu)':'')+'</span><b>'+p.score+'</b></div>';
   }).join('');
   board.style.display = players.length>1 ? 'block':'none';
-  playersT.textContent = isMP ? ('· '+players.length+' pemain') : '';
+  playersT.textContent = isMP ? ('· '+players.length+' players') : '';
 }
 function esc(s){ return (''+s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
 
@@ -730,16 +730,16 @@ glbfile.addEventListener('change',async e=>{
   const f=e.target.files&&e.target.files[0]; if(!f) return;
   try{
     uploadedGlb=await f.arrayBuffer();
-    upst.innerHTML='Model: <b style="color:var(--lock)">'+f.name+'</b> (hanya di layarmu)';
+    upst.innerHTML='Model: <b style="color:var(--lock)">'+f.name+'</b> (only on your screen)';
     if(car){ scene.remove(car); car=null; }   // rebuild on next place
-  }catch(err){ upst.textContent='Gagal baca file: '+err.message; uploadedGlb=null; }
+  }catch(err){ upst.textContent='Failed to read file: '+err.message; uploadedGlb=null; }
 });
 
 /* ---------- start AR ---------- */
 startBtn.addEventListener('click',startAR);
 async function startAR(){
   if(!navigator.xr || typeof navigator.xr.requestSession!=='function'){
-    showErr('<b>Browser ini tidak mendukung WebXR</b>, jadi AR tidak bisa jalan di sini. Buka di <b>Chrome di Android</b> (perangkat dengan ARCore). iPhone/iPad belum didukung.');
+    showErr('<b>This browser does not support WebXR</b>, so AR cannot run here. Open it in <b>Chrome on Android</b> (an ARCore device). iPhone/iPad are not supported yet.');
     return;
   }
   initThree(); initAudio();
@@ -747,7 +747,7 @@ async function startAR(){
   try{
     session=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:hud}});
-  }catch(e){ showErr('<b>Gagal memulai AR.</b> Izin kamera + akses <b>HTTPS</b>. ('+e.message+')'); return; }
+  }catch(e){ showErr('<b>Couldn\u2019t start AR.</b> Allow camera access and serve over <b>HTTPS</b>. ('+e.message+')'); return; }
   xrSession=session;
   gate.style.display='none'; hud.style.display='block';
   if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
@@ -765,9 +765,9 @@ async function startAR(){
     if(car) car.visible=false; clearWorld();
     drivebar.style.display='none'; topctrl.style.display='none'; board.style.display='none';
     bottomwrap.style.display='flex'; placeBtn.disabled=true;
-    placeBtn.textContent= isMP?'Set titik A':'Taruh mobil';
-    dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
-    hint.textContent='Gerakkan ponsel untuk memindai'; hint.classList.remove('hide');
+    placeBtn.textContent= isMP?'Set point A':'Place car';
+    dot.className='dot searching'; statusT.textContent='Looking for a surface…';
+    hint.textContent='Move your phone to scan'; hint.classList.remove('hide');
   });
   renderer.setAnimationLoop(render);
 }
@@ -845,7 +845,7 @@ function buildUploadedCar(){
   });
 }
 async function buildCar(color){
-  if(uploadedGlb){ try{ return await buildUploadedCar(); }catch(e){ upst.textContent='Model gagal dimuat, pakai bawaan.'; uploadedGlb=null; } }
+  if(uploadedGlb){ try{ return await buildUploadedCar(); }catch(e){ upst.textContent='Model failed to load, using built-in.'; uploadedGlb=null; } }
   if(USE_GLB) return await buildGlbCar();
   return buildProceduralCar(color);
 }
@@ -893,7 +893,7 @@ function onPrimary(){            // the bottom button
 function calibrateTap(){
   if(!reticle.visible) return;
   const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-  if(!calA){ calA=p.clone(); hint.textContent='Titik A diset. Arahkan ke titik B (±1 m searah), tap.'; placeBtn.textContent='Set titik B'; return; }
+  if(!calA){ calA=p.clone(); hint.textContent='Point A set. Aim at point B (~1 m away) and tap.'; placeBtn.textContent='Set point B'; return; }
   if(!setCalib(calA,p)){ hint.textContent='Titik B terlalu dekat, ulangi.'; return; }
   // calibrated: arena origin = A
   arenaCenter.copy(calA);
@@ -915,17 +915,17 @@ async function startDriving(){
   if(!isMP && botCount>0) await spawnBots();           // bot lawan (solo)
   if(inMatch()){ if(!car.userData.label){ addUnderGlow(car,0xff6b4a); addLabel(car, myName); } resetMatch(); }
   bottomwrap.style.display='none'; drivebar.style.display='flex';
-  dot.className='dot drive'; statusT.textContent= inMatch()?'Balapan':'Mengemudi'; hint.classList.add('hide');
+  dot.className='dot drive'; statusT.textContent= inMatch()?'Race':'Driving'; hint.classList.add('hide');
   if(isMP && !netTimer){ netTimer=setInterval(sendState,60); }
 }
 
 function repark(){
   carPlaced=false; speed=0; resetControls(); calA=null; if(isMP) resetMatch();
-  if(isMP){ calib=null; placeBtn.textContent='Set titik A'; }
+  if(isMP){ calib=null; placeBtn.textContent='Set point A'; }
   if(car)car.visible=false; clearWorld();
   drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
-  dot.className='dot searching'; statusT.textContent='Mencari permukaan…';
-  hint.textContent= isMP?'Kalibrasi ulang: tap titik A bersama':'Gerakkan ponsel, lalu taruh ulang';
+  dot.className='dot searching'; statusT.textContent='Looking for a surface…';
+  hint.textContent= isMP?'Recalibrate: tap point A together':'Move your phone, then place again';
   hint.classList.remove('hide');
   if(netTimer){clearInterval(netTimer);netTimer=null;}
 }
@@ -1057,8 +1057,8 @@ function addUnderGlow(group,color){
 
 /* ---------- health (server-authoritative; client only displays) ---------- */
 function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.width=h+'%'; hptxt.textContent=h; }
-function enterDead(){ dead=true; speed=0; statusT.textContent='Hancur! Respawn…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
-function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Balapan'; }
+function enterDead(){ dead=true; speed=0; statusT.textContent='Wrecked! Respawning…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
+function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Race'; }
 // local combat (dipakai di mode P2P gratis; di mode WS damage diatur server)
 function localDamage(amt){
   if(dead||eliminated) return;
@@ -1069,7 +1069,7 @@ function localDamage(amt){
 function localDestroy(){ enterDead(); setTimeout(()=>{ if(carPlaced){ ownHP=100; updateHpBar(); exitDead(); } },1500); }
 function handleKO(){                            // HP habis (survival/deathmatch) atau keluar ring (sumo)
   if(!inMatch() || gameMode==='deathmatch'){ localDestroy(); return; }   // respawn
-  enterDead(); eliminated=true; statusT.textContent='KO — nonton ronde ini';   // survival/sumo: out
+  enterDead(); eliminated=true; statusT.textContent='KO — spectating this round';   // survival/sumo: out
 }
 
 /* ---------- match: survival / deathmatch / sumo ---------- */
@@ -1083,7 +1083,7 @@ function resetRound(){
     heading=0; car.rotation.y=0; car.visible=true; }
   for(const b of bots){ if(b.timer)clearTimeout(b.timer); b.hp=100; b.eliminated=false; b.speed=0; placeBot(b); botLabelHp(b); if(b.group)b.group.visible=true; }
   updateHpBar(); updateNitroBar(); hideResult(); roundResolving=false; roundPlayers=0;
-  statusT.textContent='Balapan';
+  statusT.textContent='Race';
 }
 function updateMatch(){
   if(!inMatch() || !carPlaced || matchOver) return;
@@ -1114,19 +1114,19 @@ function updateMatch(){
     else { showRoundResult(winner); setTimeout(()=>{ if(carPlaced&&!matchOver) resetRound(); }, 4200); }
   }
 }
-function nameOf(id){ if(id===myId) return myName; if(boardData[id]) return boardData[id].n; const b=bots.find(x=>x.id===id); return b?b.name:'Lawan'; }
+function nameOf(id){ if(id===myId) return myName; if(boardData[id]) return boardData[id].n; const b=bots.find(x=>x.id===id); return b?b.name:'Rival'; }
 function showRoundResult(winnerId){
   const you=winnerId===myId;
-  const title = winnerId ? (you?'KAMU MENANG RONDE!':nameOf(winnerId)+' menang ronde') : 'Seri!';
+  const title = winnerId ? (you?'YOU WIN THE ROUND!':nameOf(winnerId)+' wins the round') : 'Draw!';
   const w = winnerId ? (wins[winnerId]||0) : 0;
-  showResult(title, you?'win':'', winnerId?('Skor ronde '+nameOf(winnerId)+': '+w+' / '+ROUND_TARGET):'Tak ada yang bertahan', false);
+  showResult(title, you?'win':'', winnerId?('Round score '+nameOf(winnerId)+': '+w+' / '+ROUND_TARGET):'No survivors', false);
   countdownResult(4);
 }
 function endMatch(winnerId){
   matchOver=true; roundResolving=true;
   const you=winnerId===myId;
-  showResult(you?'🏆 KAMU JUARA!':'🏆 '+nameOf(winnerId)+' juara', 'champ',
-    gameMode==='deathmatch'?'Match Deathmatch selesai':'Match selesai', true);
+  showResult(you?'🏆 YOU WIN!':'🏆 '+nameOf(winnerId)+' wins!', 'champ',
+    gameMode==='deathmatch'?'Deathmatch over':'Match over', true);
   setTimeout(()=>{ if(carPlaced && matchOver){ resetMatch(); resetRound(); } }, 7000);
 }
 function showResult(title,cls,sub,champ){
@@ -1136,9 +1136,9 @@ function showResult(title,cls,sub,champ){
   resultEl.classList.add('show');
 }
 function hideResult(){ resultEl.classList.remove('show'); resCd.textContent=''; }
-function countdownResult(sec){ let s=sec; resCd.textContent='Ronde baru dalam '+s+'…';
+function countdownResult(sec){ let s=sec; resCd.textContent='New round in '+s+'…';
   const iv=setInterval(()=>{ s--; if(s<=0||!resultEl.classList.contains('show')){clearInterval(iv);return;}
-    resCd.textContent='Ronde baru dalam '+s+'…'; },1000); }
+    resCd.textContent='New round in '+s+'…'; },1000); }
 
 /* ---------- AI bots (lawan latihan, mode solo) ---------- */
 function placeBot(b){ const a=Math.random()*Math.PI*2, r=0.4+Math.random()*(ARENA_RADIUS-0.6);
@@ -1327,10 +1327,10 @@ function render(t,frame){
     if(res.length){
       reticle.visible=true; reticle.matrix.fromArray(res[0].getPose(localSpace).transform.matrix);
       if(!surfaceFound){ surfaceFound=true; dot.className='dot locked'; statusT.textContent='Permukaan terkunci'; placeBtn.disabled=false;
-        if(isMP){ placeBtn.textContent=calA?'Set titik B':'Set titik A'; hint.textContent='Tap titik '+(calA?'B':'A')+' (sama untuk semua pemain)'; }
-        else hint.textContent='Ketuk "Taruh mobil"'; }
+        if(isMP){ placeBtn.textContent=calA?'Set point B':'Set point A'; hint.textContent='Tap point '+(calA?'B':'A')+' (sama untuk semua pemain)'; }
+        else hint.textContent='Tap "Place car"'; }
     }else{ reticle.visible=false;
-      if(surfaceFound){ surfaceFound=false; dot.className='dot searching'; statusT.textContent='Mencari permukaan…'; placeBtn.disabled=true; } }
+      if(surfaceFound){ surfaceFound=false; dot.className='dot searching'; statusT.textContent='Looking for a surface…'; placeBtn.disabled=true; } }
   } else if(carPlaced){ reticle.visible=false; }
 
   if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); updatePowerups(dt); }
