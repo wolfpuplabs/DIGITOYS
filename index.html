@@ -5,16 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>RC Arena · Markerless AR · Multiplayer</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
   :root{
-    --bg:#0b0e13;--panel:rgba(14,18,25,.72);--stroke:rgba(255,255,255,.12);
-    --ink:#eef2f6;--muted:#8b97a6;--signal:#ff6b4a;--lock:#34e0c4;
-    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
-    --sans:"Space Grotesk",system-ui,-apple-system,sans-serif;
+    --bg:#090a0f;--panel:rgba(18,21,30,.74);--stroke:rgba(255,255,255,.14);
+    --ink:#f3f5fa;--muted:#8b93a6;--signal:#ff5a2e;--lock:#23e3ff;
+    --volt:#ffe14d;--magenta:#ff2d7e;--cyan:#23e3ff;--lime:#5dff8b;
+    --mono:"Space Mono",ui-monospace,Menlo,monospace;
+    --sans:"Rajdhani",system-ui,-apple-system,sans-serif;
+    --display:"Russo One","Rajdhani",sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;overflow:hidden}
-  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+  body{background:
+      radial-gradient(130% 90% at 50% -15%, rgba(35,227,255,.07), transparent 55%),
+      radial-gradient(120% 80% at 90% 110%, rgba(255,45,126,.07), transparent 55%),
+      repeating-linear-gradient(118deg, rgba(255,255,255,.022) 0 2px, transparent 2px 28px),
+      var(--bg);
+    color:var(--ink);font-family:var(--sans);font-size:16px;
     -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;touch-action:none}
   canvas{display:block}
   .hud{position:fixed;inset:0;pointer-events:none;z-index:10}
@@ -138,14 +145,124 @@
   .err{display:none;margin-top:18px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,107,74,.4);
     background:rgba(255,107,74,.08);color:#ffb9a8;font-size:13px;line-height:1.5}
   .err b{color:var(--signal)}
+
+  /* ============ ARCADE-RACE SKIN ============ */
+  .statusbar{font-family:var(--mono);letter-spacing:.1em}
+  .gate{background:
+      radial-gradient(130% 80% at 50% -10%, rgba(35,227,255,.10), transparent 55%),
+      radial-gradient(100% 70% at 100% 100%, rgba(255,45,126,.08), transparent 55%),
+      var(--bg)}
+  .gate .kicker{color:var(--volt);font-family:var(--mono);letter-spacing:.24em}
+  .title .logo{font-family:var(--display);font-weight:400;font-size:clamp(52px,17vw,92px);line-height:.88;
+    letter-spacing:.005em;color:#fff;margin:10px 0 0;
+    text-shadow:0 0 22px rgba(35,227,255,.5), 3px 3px 0 var(--magenta), -1px -1px 0 rgba(255,225,77,.5)}
+  .flagband{height:13px;margin:14px 0 16px;border-radius:3px;
+    background:repeating-conic-gradient(#f3f5fa 0% 25%, #11131a 0% 50%) 0/15px 15px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.12),0 6px 22px rgba(0,0,0,.5)}
+  .gate p{color:var(--muted);font-size:16px;line-height:1.45;max-width:40ch}
+  .mp{margin-top:16px;padding:16px;border:1px solid var(--stroke);border-radius:18px;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015))}
+  .mp .lbl{font-family:var(--display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+  .mp input{font-family:var(--mono);background:#0b0d13;border-radius:12px}
+  .mp input:focus{outline:none;border-color:var(--volt);box-shadow:0 0 0 3px rgba(255,225,77,.18)}
+  .mp button.act{background:linear-gradient(180deg,#5ff0ff,var(--cyan));color:#052029;font-family:var(--display);
+    font-size:14px;letter-spacing:.04em;border:none;box-shadow:0 6px 20px rgba(35,227,255,.35)}
+  .mp .st b{color:var(--volt)}
+  /* mode cards */
+  #modes{gap:9px}
+  .modebtn[data-mode]{height:auto!important;padding:13px 6px!important;display:flex;flex-direction:column;
+    gap:5px;align-items:center;border-radius:15px!important;opacity:1!important;
+    font-family:var(--display)!important;font-size:12px!important;letter-spacing:.03em;text-transform:uppercase;
+    background:rgba(255,255,255,.04)!important;border:1px solid var(--stroke)!important;color:var(--muted)!important}
+  .modebtn[data-mode] .mi{font-size:23px;line-height:1}
+  .modebtn[data-mode].on{border-color:transparent!important;color:#0a0b10!important;
+    background:linear-gradient(180deg,#fff0a0,var(--volt))!important;box-shadow:0 7px 22px rgba(255,225,77,.4)!important}
+  /* bot pills */
+  #botsel .modebtn{font-family:var(--display)!important;letter-spacing:.03em}
+  #botsel .modebtn.on{border-color:transparent!important;color:#062028!important;
+    background:linear-gradient(180deg,#5ff0ff,var(--cyan))!important;box-shadow:0 6px 18px rgba(35,227,255,.34)!important}
+  /* arena radius slider */
+  .arena-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+  .arena-row input[type=range]{flex:1;-webkit-appearance:none;height:6px;border-radius:6px;
+    background:linear-gradient(90deg,var(--cyan),var(--magenta));outline:none}
+  .arena-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;
+    background:#fff;border:3px solid var(--volt);box-shadow:0 2px 10px rgba(0,0,0,.5);cursor:pointer}
+  .arena-row .val{font-family:var(--mono);font-size:14px;color:var(--volt);min-width:74px;text-align:right}
+  .arena-actions{display:flex;gap:9px;margin-top:12px}
+  .arena-actions button{flex:1;height:46px;border-radius:13px;border:1px solid var(--stroke);
+    background:rgba(255,255,255,.05);color:var(--ink);font-family:var(--display);font-size:13px;
+    letter-spacing:.03em;text-transform:uppercase;cursor:pointer}
+  .arena-actions button:active{transform:scale(.97)}
+  .arena-actions .prim{border-color:transparent;background:linear-gradient(180deg,#ff8a5c,var(--signal));color:#1c0a04}
+  .seg{display:flex;gap:8px;margin-top:10px}
+  .seg button{flex:1;height:40px;border-radius:11px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);
+    color:var(--muted);font-family:var(--display);font-size:12px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+  .seg button.on{border-color:transparent;color:#0a0b10;background:linear-gradient(180deg,#fff0a0,var(--volt))}
+  /* START button = drag-strip launch */
+  .start{margin-top:22px;align-self:stretch;width:100%;height:64px;border:none;border-radius:18px;
+    background:linear-gradient(180deg,#ffd24d,var(--signal));color:#1c0a04;
+    font-family:var(--display);font-size:21px;letter-spacing:.06em;text-transform:uppercase;
+    box-shadow:0 10px 34px rgba(255,90,46,.5), inset 0 0 0 2px rgba(255,255,255,.25);
+    position:relative;overflow:hidden}
+  .start::before{content:"";position:absolute;left:0;top:0;bottom:0;width:26px;
+    background:repeating-conic-gradient(#1c0a04 0% 25%, #ffd24d 0% 50%) 0/13px 13px}
+  .start:active{transform:scale(.98)}
+  /* HUD gauges */
+  .topctrl{gap:10px}
+  .hpbar,.nbar{border:1px solid rgba(255,255,255,.18);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+  .hpfill{background:linear-gradient(90deg,var(--lime),#16d39a)!important}
+  .nfill{background:linear-gradient(90deg,#7fe6ff,var(--cyan))!important}
+  .hptxt,.ntxt{font-family:var(--mono)}
+  .iconbtn{border:1px solid var(--stroke);background:rgba(11,14,19,.66)}
+  .pedal{font-family:var(--display)!important;letter-spacing:.05em;border:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.4),inset 0 0 0 2px rgba(255,255,255,.18)}
+  .pedal.gas{background:linear-gradient(180deg,#86ffc2,#1fd39a)!important;color:#04261b!important}
+  .pedal.brake{background:linear-gradient(180deg,#ff9d6e,var(--signal))!important;color:#240c04!important}
+  .nitrobtn{background:linear-gradient(180deg,#ffe88a,var(--volt))!important;color:#241f04!important;
+    font-family:var(--display)!important;box-shadow:0 6px 20px rgba(255,225,77,.5)!important}
+  .wheel{border:1px solid rgba(255,255,255,.18);box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  .board{font-family:var(--display)!important}
+  /* result overlay */
+  .result .big{font-family:var(--display);font-weight:400;font-size:40px;letter-spacing:.02em;
+    color:#fff;text-shadow:0 0 20px rgba(35,227,255,.5)}
+  .result .big.win{color:var(--volt);text-shadow:0 0 22px rgba(255,225,77,.55)}
+  .result .big.champ{color:var(--volt);text-shadow:0 0 26px rgba(255,225,77,.7)}
+  .result .sub,.result .cd{font-family:var(--mono)}
+  .result .again{background:linear-gradient(180deg,#ffd24d,var(--signal));color:#1c0a04;font-family:var(--display);letter-spacing:.04em}
+
+  /* ============ ARENA BUILDER ============ */
+  .builder{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;
+    background:var(--bg);padding:calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 16px)}
+  .builder.show{display:flex}
+  .builder h2{font-family:var(--display);font-size:24px;letter-spacing:.02em;color:#fff;
+    text-shadow:0 0 16px rgba(35,227,255,.45)}
+  .builder .hintline{color:var(--muted);font-size:14px;margin:4px 0 12px}
+  #bcanvas{width:100%;flex:1;min-height:0;border-radius:18px;border:1px solid var(--stroke);
+    background:#0b0d13;touch-action:none;display:block}
+  .brow{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .bcode{flex:1;min-width:140px;height:44px;border-radius:11px;border:1px solid var(--stroke);background:#0b0d13;
+    color:var(--ink);font-family:var(--mono);font-size:12px;padding:0 12px}
+  .builder button{height:44px;padding:0 14px;border-radius:11px;border:1px solid var(--stroke);
+    background:rgba(255,255,255,.05);color:var(--ink);font-family:var(--display);font-size:13px;
+    letter-spacing:.03em;text-transform:uppercase;cursor:pointer}
+  .builder button:active{transform:scale(.97)}
+  .builder .prim{border-color:transparent;background:linear-gradient(180deg,#ff8a5c,var(--signal));color:#1c0a04}
+  .builder .go{border-color:transparent;background:linear-gradient(180deg,#fff0a0,var(--volt));color:#1a1604}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:70;
+    background:var(--volt);color:#1a1604;font-family:var(--display);font-size:13px;letter-spacing:.03em;
+    padding:10px 18px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
 
 <div class="gate" id="gate">
-  <div class="kicker">Markerless · WebXR · Multiplayer</div>
-  <h1>Same floor.<br><em>Race together.</em></h1>
-  <p>Mode solo langsung jalan. Untuk multiplayer (gratis), semua pemain isi kode room yang sama lalu "Konek" — orang pertama otomatis jadi host. Setelah masuk AR, kalibrasi 2 titik di lantai yang sama.</p>
+  <div class="title">
+    <div class="kicker">WebXR · AR · Local Multiplayer</div>
+    <h1 class="logo">RC&nbsp;ARENA</h1>
+    <div class="flagband"></div>
+    <p>Solo langsung gas. Multiplayer: samakan kode room (host bagikan arena & mode). Main sendiri? Lawan bot.</p>
+  </div>
 
   <div class="mp">
     <div class="lbl">Multiplayer (gratis · tanpa server)</div>
@@ -156,15 +273,31 @@
       <input id="room" placeholder="kode room, mis. arena1" autocapitalize="off" autocomplete="off" />
     </div>
     <div class="modes" id="modes">
-      <button class="modebtn on" data-mode="survival">🏁 Survival</button>
-      <button class="modebtn" data-mode="deathmatch">💥 Deathmatch</button>
-      <button class="modebtn" data-mode="sumo">⭕ Sumo</button>
+      <button class="modebtn on" data-mode="survival"><span class="mi">🏁</span>Survival</button>
+      <button class="modebtn" data-mode="deathmatch"><span class="mi">💥</span>Deathmatch</button>
+      <button class="modebtn" data-mode="sumo"><span class="mi">⭕</span>Sumo</button>
     </div>
     <div class="st" id="moderule">Last car standing — HP abis kalah ronde. First to 3 menang.</div>
     <div class="row">
       <button id="connect" class="act">Konek room</button>
     </div>
     <div class="st" id="mpst">Status: solo (belum konek)</div>
+  </div>
+
+  <div class="mp" style="margin-top:14px">
+    <div class="lbl">Arena</div>
+    <div class="arena-row">
+      <input id="arenaRange" type="range" min="0.7" max="2.2" step="0.05" value="1.1" />
+      <span class="val" id="arenaVal">Ø 2.2 m</span>
+    </div>
+    <div class="seg" id="shapeSeg">
+      <button data-shape="circle" class="on">● Lingkaran</button>
+      <button data-shape="square">■ Kotak</button>
+    </div>
+    <div class="arena-actions">
+      <button id="openBuilder" class="prim">🧱 Arena Builder</button>
+    </div>
+    <div class="st" id="arenaSt">Geser untuk besar/kecil. Builder: atur cone & simpan kode arena buat dibagikan.</div>
   </div>
 
   <div class="mp" style="margin-top:14px">
@@ -189,6 +322,25 @@
   <button class="start" id="start">Mulai AR</button>
   <div class="err" id="err"></div>
 </div>
+
+<div class="builder" id="builder">
+  <h2>Arena Builder</h2>
+  <div class="hintline">Tap kanvas = taruh cone · tap cone = hapus · geser cone = pindah. Simpan kodenya buat dibagikan.</div>
+  <canvas id="bcanvas"></canvas>
+  <div class="brow">
+    <button id="bClear">Kosongkan</button>
+    <button id="bRandom">Acak</button>
+    <span style="flex:1"></span>
+    <button id="bCancel">Tutup</button>
+    <button id="bUse" class="go">Pakai arena</button>
+  </div>
+  <div class="brow">
+    <input id="bCode" class="bcode" placeholder="kode arena (untuk dibagikan / ditempel)" autocapitalize="off" autocomplete="off" />
+    <button id="bCopy">Salin</button>
+    <button id="bLoad" class="prim">Muat</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 
 <div class="hud" id="hud" style="display:none">
   <div class="statusbar">
@@ -291,8 +443,23 @@ const HIT_COOLDOWN=450;     // ms between damage events
 let uploadedGlb=null;       // ArrayBuffer of user .glb
 
 const arenaCenter=new THREE.Vector3();
-const ARENA_RADIUS=1.1,N_OBSTACLES=5;
+let ARENA_RADIUS=1.1, arenaShape='circle';      // bisa diatur slider/builder
+let customCones=null;                            // [{x,z}] offset meter dari pusat; null = acak per-room
+const N_OBSTACLES=5;
 let arenaRing=null; const obstacles=[];
+// geometri arena (lingkaran/kotak; R = radius / setengah-sisi)
+function arenaInside(dx,dz){ return arenaShape==='square' ? (Math.abs(dx)<=ARENA_RADIUS&&Math.abs(dz)<=ARENA_RADIUS) : (Math.hypot(dx,dz)<=ARENA_RADIUS); }
+function outsideArena(px,pz,m){ const dx=px-arenaCenter.x,dz=pz-arenaCenter.z,R=ARENA_RADIUS+m;
+  return arenaShape==='square' ? (Math.abs(dx)>R||Math.abs(dz)>R) : (Math.hypot(dx,dz)>R); }
+function clampArena(px,pz,m){ const dx=px-arenaCenter.x,dz=pz-arenaCenter.z,R=ARENA_RADIUS-m;
+  if(arenaShape==='square'){ let x=dx,z=dz,hit=false;
+    if(x>R){x=R;hit=true;}else if(x<-R){x=-R;hit=true;} if(z>R){z=R;hit=true;}else if(z<-R){z=-R;hit=true;}
+    return {x:arenaCenter.x+x,z:arenaCenter.z+z,hit}; }
+  const d=Math.hypot(dx,dz); if(d>R){const nx=dx/d,nz=dz/d; return {x:arenaCenter.x+nx*R,z:arenaCenter.z+nz*R,hit:true};}
+  return {x:px,z:pz,hit:false}; }
+function randInArena(){ // titik acak di dalam arena (offset dari pusat)
+  if(arenaShape==='square'){ const R=ARENA_RADIUS-0.2; return {x:(Math.random()*2-1)*R, z:(Math.random()*2-1)*R}; }
+  const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*(ARENA_RADIUS-0.2); return {x:Math.cos(a)*r, z:Math.sin(a)*r}; }
 const marks=[]; const MAX_MARKS=260; let markGeo=null,markMat=null,markTick=0;
 
 /* multiplayer state */
@@ -347,6 +514,87 @@ function reflectMode(){
   moderule.textContent=MODE_RULE[gameMode];
 }
 
+/* ---------- arena size / shape / builder ---------- */
+const arenaRange=$('arenaRange'),arenaVal=$('arenaVal'),arenaSt=$('arenaSt'),shapeSeg=$('shapeSeg');
+const builderEl=$('builder'),bcanvas=$('bcanvas'),bCode=$('bCode'),toastEl=$('toast');
+function showToast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>toastEl.classList.remove('show'),1500); }
+function reflectArena(){
+  arenaRange.value=ARENA_RADIUS;
+  arenaVal.textContent='Ø '+(ARENA_RADIUS*2).toFixed(1)+' m';
+  [...shapeSeg.children].forEach(b=>b.classList.toggle('on',b.dataset.shape===arenaShape));
+  arenaSt.textContent = customCones&&customCones.length ? ('Arena custom · '+customCones.length+' cone · Ø '+(ARENA_RADIUS*2).toFixed(1)+' m')
+    : 'Geser untuk besar/kecil. Builder: atur cone & simpan kode arena buat dibagikan.';
+}
+arenaRange.addEventListener('input',()=>{ ARENA_RADIUS=+arenaRange.value; reflectArena(); });
+[...shapeSeg.children].forEach(b=>b.addEventListener('click',()=>{ arenaShape=b.dataset.shape; reflectArena(); }));
+
+/* arena code: base64(JSON {r,s,c:[[x,z]]}) */
+function encodeArena(){ const o={r:+ARENA_RADIUS.toFixed(2),s:arenaShape[0],c:builderCones.map(c=>[+c.x.toFixed(2),+c.z.toFixed(2)])};
+  try{ return btoa(JSON.stringify(o)); }catch(e){ return ''; } }
+function decodeArena(str){ try{ const o=JSON.parse(atob(str.trim()));
+  return {r:+o.r||1.1, shape:o.s==='s'?'square':'circle', cones:(o.c||[]).map(a=>({x:+a[0],z:+a[1]}))}; }catch(e){ return null; } }
+
+/* builder editor */
+let builderCones=[], bdrag=-1, bmoved=false, bExisting=false, bctx=null;
+function bWorldHalf(){ return Math.max(ARENA_RADIUS*1.15,0.9); }   // half-extent shown
+function bToPx(x,z){ const w=bcanvas.width,h=bcanvas.height,s=Math.min(w,h)*0.5/bWorldHalf();
+  return {px:w/2+x*s, py:h/2+z*s, s}; }
+function bToWorld(px,py){ const w=bcanvas.width,h=bcanvas.height,s=Math.min(w,h)*0.5/bWorldHalf();
+  return {x:(px-w/2)/s, z:(py-h/2)/s}; }
+function drawBuilder(){
+  if(!bctx) return; const w=bcanvas.width,h=bcanvas.height; bctx.clearRect(0,0,w,h);
+  // grid
+  bctx.strokeStyle='rgba(255,255,255,.05)'; bctx.lineWidth=1;
+  for(let gx=0;gx<w;gx+=26){ bctx.beginPath();bctx.moveTo(gx,0);bctx.lineTo(gx,h);bctx.stroke(); }
+  for(let gy=0;gy<h;gy+=26){ bctx.beginPath();bctx.moveTo(0,gy);bctx.lineTo(w,gy);bctx.stroke(); }
+  // arena boundary
+  const c=bToPx(0,0), s=c.s, R=ARENA_RADIUS*s;
+  bctx.strokeStyle='#23e3ff'; bctx.lineWidth=3; bctx.shadowColor='#23e3ff'; bctx.shadowBlur=12;
+  if(arenaShape==='square'){ bctx.strokeRect(c.px-R,c.py-R,R*2,R*2); }
+  else { bctx.beginPath(); bctx.arc(c.px,c.py,R,0,Math.PI*2); bctx.stroke(); }
+  bctx.shadowBlur=0;
+  // center start marker (checkered dot)
+  bctx.fillStyle='rgba(255,225,77,.9)'; bctx.beginPath(); bctx.arc(c.px,c.py,5,0,Math.PI*2); bctx.fill();
+  // cones
+  for(const o of builderCones){ const p=bToPx(o.x,o.z);
+    bctx.fillStyle='#ffa033'; bctx.strokeStyle='#241000'; bctx.lineWidth=2;
+    bctx.beginPath(); bctx.arc(p.px,p.py,9,0,Math.PI*2); bctx.fill(); bctx.stroke(); }
+}
+function sizeCanvas(){ const r=bcanvas.getBoundingClientRect(); bcanvas.width=Math.round(r.width); bcanvas.height=Math.round(r.height); drawBuilder(); }
+function openBuilder(){
+  builderEl.classList.add('show'); bctx=bcanvas.getContext('2d');
+  builderCones = (customCones&&customCones.length)? customCones.map(c=>({x:c.x,z:c.z})) : randomCones();
+  bCode.value=encodeArena();
+  requestAnimationFrame(sizeCanvas);
+}
+function closeBuilder(){ builderEl.classList.remove('show'); }
+function randomCones(){ const n=4+Math.floor(Math.random()*4), arr=[]; for(let i=0;i<n;i++) arr.push(randInArena()); return arr; }
+function clampConeInside(o){ const m=0.08;
+  if(arenaShape==='square'){ const R=ARENA_RADIUS-m; o.x=Math.max(-R,Math.min(R,o.x)); o.z=Math.max(-R,Math.min(R,o.z)); }
+  else { const d=Math.hypot(o.x,o.z),R=ARENA_RADIUS-m; if(d>R){ o.x*=R/d; o.z*=R/d; } } return o; }
+function bHit(px,py){ for(let i=builderCones.length-1;i>=0;i--){ const p=bToPx(builderCones[i].x,builderCones[i].z);
+  if(Math.hypot(px-p.px,py-p.py)<16) return i; } return -1; }
+bcanvas.addEventListener('pointerdown',e=>{ const r=bcanvas.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
+  const i=bHit(px,py); bmoved=false;
+  if(i>=0){ bdrag=i; bExisting=true; }
+  else { const wld=clampConeInside(bToWorld(px,py)); if(arenaInside(wld.x,wld.z)){ builderCones.push(wld); bdrag=builderCones.length-1; bExisting=false; bmoved=true; drawBuilder(); bCode.value=encodeArena(); } }
+  bcanvas.setPointerCapture(e.pointerId);
+});
+bcanvas.addEventListener('pointermove',e=>{ if(bdrag<0) return; const r=bcanvas.getBoundingClientRect();
+  const wld=clampConeInside(bToWorld(e.clientX-r.left,e.clientY-r.top)); builderCones[bdrag].x=wld.x; builderCones[bdrag].z=wld.z; bmoved=true; drawBuilder(); });
+bcanvas.addEventListener('pointerup',()=>{ if(bdrag>=0 && bExisting && !bmoved){ builderCones.splice(bdrag,1); drawBuilder(); } bdrag=-1; bExisting=false; bCode.value=encodeArena(); });
+$('openBuilder').addEventListener('click',openBuilder);
+$('bCancel').addEventListener('click',closeBuilder);
+$('bClear').addEventListener('click',()=>{ builderCones=[]; drawBuilder(); bCode.value=encodeArena(); });
+$('bRandom').addEventListener('click',()=>{ builderCones=randomCones(); drawBuilder(); bCode.value=encodeArena(); });
+$('bUse').addEventListener('click',()=>{ customCones=builderCones.map(c=>({x:c.x,z:c.z})); reflectArena(); closeBuilder(); showToast('Arena dipakai ✓'); });
+$('bCopy').addEventListener('click',async()=>{ bCode.value=encodeArena(); try{ await navigator.clipboard.writeText(bCode.value); showToast('Kode arena disalin'); }catch(e){ bCode.select(); showToast('Tekan lama untuk copy'); } });
+$('bLoad').addEventListener('click',()=>{ const d=decodeArena(bCode.value); if(!d){ showToast('Kode tidak valid'); return; }
+  ARENA_RADIUS=Math.max(0.7,Math.min(2.2,d.r)); arenaShape=d.shape; builderCones=d.cones.map(clampConeInside); customCones=builderCones.map(c=>({x:c.x,z:c.z}));
+  reflectArena(); drawBuilder(); showToast('Arena dimuat'); });
+window.addEventListener('resize',()=>{ if(builderEl.classList.contains('show')) sizeCanvas(); });
+reflectArena();
+
 function connectServer(){
   const code=(roomIn.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!code){ mpst.innerHTML='Status: <b>isi kode room dulu</b>'; return; }
@@ -375,7 +623,7 @@ function connectP2P(code){
   });
 }
 function wireConn(c){
-  c.on('open',()=>{ conns[c.peer]=c; if(isHost){ try{c.send({t:'cfg',id:myId,mode:gameMode});}catch(e){} } });
+  c.on('open',()=>{ conns[c.peer]=c; if(isHost){ try{c.send(hostCfg());}catch(e){} } });
   c.on('data',d=>onP2P(d,c));
   c.on('close',()=>{ delete conns[c.peer]; removeRemote(c.peer); delete boardData[c.peer]; renderBoardP2P(); });
 }
@@ -385,10 +633,18 @@ function onP2P(d,from){
     if(d.id!==myId){ applyRemote(d); boardData[d.id]={id:d.id,n:d.n||'Player',score:d.score||0}; renderBoardP2P(); }
     if(isHost){ for(const pid in conns) if(pid!==from.peer) try{conns[pid].send(d);}catch(e){} }   // relay
   } else if(d.t==='cfg'){
-    if(!isHost && d.mode && d.mode!==gameMode){ gameMode=d.mode; reflectMode();
-      mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> · mode dari host: <b>'+gameMode+'</b>'; }
+    if(!isHost){
+      if(d.mode) gameMode=d.mode;
+      if(d.r) ARENA_RADIUS=d.r;
+      if(d.shape) arenaShape=d.shape;
+      if(Array.isArray(d.cones)) customCones=d.cones.map(c=>({x:c[0],z:c[1]}));
+      reflectMode(); reflectArena();
+      mpst.innerHTML='Status: <b style="color:var(--lock)">tergabung</b> · dari host: <b>'+gameMode+'</b>';
+    }
   } else if(d.t==='bye'){ removeRemote(d.id); delete boardData[d.id]; renderBoardP2P(); }
 }
+function hostCfg(){ return {t:'cfg',id:myId,mode:gameMode,r:+ARENA_RADIUS.toFixed(2),shape:arenaShape,
+  cones:(customCones||[]).map(c=>[+c.x.toFixed(2),+c.z.toFixed(2)])}; }
 function p2pBroadcast(msg){ for(const pid in conns) try{conns[pid].send(msg);}catch(e){} }
 function renderBoardP2P(){
   const useWins = inMatch() && gameMode!=='deathmatch';
@@ -677,22 +933,27 @@ function repark(){
 /* ---------- arena / obstacles / marks ---------- */
 function buildArena(){
   if(arenaRing) scene.remove(arenaRing);
-  const geo=new THREE.RingGeometry(ARENA_RADIUS-0.01,ARENA_RADIUS+0.01,80).rotateX(-Math.PI/2);
-  arenaRing=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x34e0c4,transparent:true,opacity:.5,side:THREE.DoubleSide}));
+  const R=ARENA_RADIUS;
+  if(arenaShape==='square'){
+    const pts=[[-R,-R],[R,-R],[R,R],[-R,R],[-R,-R]].map(p=>new THREE.Vector3(p[0],0,p[1]));
+    const g=new THREE.BufferGeometry().setFromPoints(pts);
+    arenaRing=new THREE.Line(g,new THREE.LineBasicMaterial({color:0x25e0ff,transparent:true,opacity:.65}));
+  } else {
+    const geo=new THREE.RingGeometry(R-0.012,R+0.012,90).rotateX(-Math.PI/2);
+    arenaRing=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x25e0ff,transparent:true,opacity:.55,side:THREE.DoubleSide}));
+  }
   arenaRing.position.copy(arenaCenter); arenaRing.position.y+=0.002; scene.add(arenaRing);
 }
 function spawnObstacles(){
   clearObstacles();
   const coneGeo=new THREE.ConeGeometry(0.045,0.09,18);
   const coneMat=new THREE.MeshStandardMaterial({color:0xffa033,roughness:.5,emissive:0x3a1e00});
-  for(let i=0;i<N_OBSTACLES;i++){
-    const a=rng()*Math.PI*2, r=0.4+rng()*(ARENA_RADIUS-0.55);
-    const o=new THREE.Mesh(coneGeo,coneMat);
-    // place relative to shared frame if calibrated so all devices match physically
-    if(calib){ const lp=sharedToLocal(Math.cos(a)*r,Math.sin(a)*r); o.position.set(lp.x,arenaCenter.y+0.045,lp.z); }
-    else o.position.set(arenaCenter.x+Math.cos(a)*r,arenaCenter.y+0.045,arenaCenter.z+Math.sin(a)*r);
-    o.userData.r=0.05; scene.add(o); obstacles.push(o);
-  }
+  const place=(sx,sz)=>{ const o=new THREE.Mesh(coneGeo,coneMat);
+    if(calib){ const lp=sharedToLocal(sx,sz); o.position.set(lp.x,arenaCenter.y+0.045,lp.z); }
+    else o.position.set(arenaCenter.x+sx,arenaCenter.y+0.045,arenaCenter.z+sz);
+    o.userData.r=0.05; scene.add(o); obstacles.push(o); };
+  if(customCones && customCones.length){ for(const c of customCones) place(c.x,c.z); }
+  else { for(let i=0;i<N_OBSTACLES;i++){ const a=rng()*Math.PI*2, r=0.4+rng()*(ARENA_RADIUS-0.55); place(Math.cos(a)*r,Math.sin(a)*r); } }
 }
 function clearObstacles(){obstacles.forEach(o=>scene.remove(o));obstacles.length=0;}
 function clearMarks(){marks.forEach(m=>scene.remove(m));marks.length=0;}
@@ -716,9 +977,9 @@ function makePowerup(type){
   return g;
 }
 function placePowerup(p){
-  const a=Math.random()*Math.PI*2, r=0.35+Math.random()*(ARENA_RADIUS-0.5);
-  if(calib){ const lp=sharedToLocal(Math.cos(a)*r,Math.sin(a)*r); p.mesh.position.set(lp.x,arenaCenter.y+0.06,lp.z); }
-  else p.mesh.position.set(arenaCenter.x+Math.cos(a)*r,arenaCenter.y+0.06,arenaCenter.z+Math.sin(a)*r);
+  const o=randInArena();
+  if(calib){ const lp=sharedToLocal(o.x,o.z); p.mesh.position.set(lp.x,arenaCenter.y+0.06,lp.z); }
+  else p.mesh.position.set(arenaCenter.x+o.x,arenaCenter.y+0.06,arenaCenter.z+o.z);
   p.mesh.visible=true; p.type=p.mesh.userData.type;
 }
 function spawnPowerups(){
@@ -812,7 +1073,7 @@ function handleKO(){                            // HP habis (survival/deathmatch
 }
 
 /* ---------- match: survival / deathmatch / sumo ---------- */
-function inRingShared(t){ return t && Math.hypot(t.x,t.z) < ARENA_RADIUS; }
+function inRingShared(t){ return t && arenaInside(t.x,t.z); }
 function resetMatch(){ matchOver=false; roundResolving=false; roundPlayers=0; eliminated=false;
   for(const k in wins) delete wins[k]; renderBoardP2P(); hideResult(); }
 function resetRound(){
@@ -917,9 +1178,8 @@ function updateBots(dt){
     b.speed += (want-b.speed)*2.0*dt;
     b.x += Math.sin(b.heading)*b.speed*dt; b.z += Math.cos(b.heading)*b.speed*dt;
     // bounds
-    const cx=b.x-arenaCenter.x, cz=b.z-arenaCenter.z, cd=Math.hypot(cx,cz);
-    if(inMatch() && gameMode==='sumo'){ if(cd>ARENA_RADIUS+0.03){ botKO(b); continue; } }
-    else { const maxR=ARENA_RADIUS-CAR_R; if(cd>maxR){ const nx=cx/cd,nz=cz/cd; b.x=arenaCenter.x+nx*maxR; b.z=arenaCenter.z+nz*maxR; b.heading+=Math.PI*0.6; b.speed*=0.5; } }
+    if(inMatch() && gameMode==='sumo'){ if(outsideArena(b.x,b.z,0.03)){ botKO(b); continue; } }
+    else { const c=clampArena(b.x,b.z,CAR_R); if(c.hit){ b.x=c.x; b.z=c.z; b.heading+=Math.PI*0.6; b.speed*=0.5; } }
     // obstacles
     for(const o of obstacles){ const ox=b.x-o.position.x,oz=b.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
       if(d<min&&d>1e-4){ const nx=ox/d,nz=oz/d; b.x=o.position.x+nx*min; b.z=o.position.z+nz*min; b.speed*=0.6; } }
@@ -1100,11 +1360,11 @@ function driveCar(dt){
   heading+=-steerInput*speed*TURN_RATE*dt;
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
-  // arena bounds (sumo: keluar ring = KO; mode lain: mantul)
-  let dx=car.position.x-arenaCenter.x,dz=car.position.z-arenaCenter.z,dist=Math.hypot(dx,dz),maxR=ARENA_RADIUS-CAR_R;
+  // arena bounds (sumo: keluar arena = KO; mode lain: mentok)
+  let dx=car.position.x-arenaCenter.x,dz=car.position.z-arenaCenter.z,dist=Math.hypot(dx,dz);
   if(inMatch() && gameMode==='sumo'){
-    if(!eliminated && dist>ARENA_RADIUS+0.03){ spawnBurst(car.position,0xffd24a,20,1.2); handleKO(); return; }
-  } else if(dist>maxR){const nx=dx/dist,nz=dz/dist;car.position.x=arenaCenter.x+nx*maxR;car.position.z=arenaCenter.z+nz*maxR;speed*=-0.35;}
+    if(!eliminated && outsideArena(car.position.x,car.position.z,0.03)){ spawnBurst(car.position,0xffd24a,20,1.2); handleKO(); return; }
+  } else { const c=clampArena(car.position.x,car.position.z,CAR_R); if(c.hit){ car.position.x=c.x; car.position.z=c.z; speed*=-0.35; } }
   // obstacle collision (+ damage saat kena cone)
   for(const o of obstacles){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
