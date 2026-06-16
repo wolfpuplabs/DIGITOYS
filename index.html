@@ -110,7 +110,7 @@
     font-weight:600;font-size:13px;cursor:pointer}
   .rbtn:active{transform:scale(.95)} .boost{background:var(--signal);color:#1a0d09;border:none;font-weight:700}
   .gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;
-    justify-content:flex-start;padding:calc(env(safe-area-inset-top) + 26px) 26px calc(env(safe-area-inset-bottom) + 40px);overflow-y:auto}
+    justify-content:flex-start;padding:calc(env(safe-area-inset-top) + 26px) 26px calc(env(safe-area-inset-bottom) + 96px);overflow-y:auto}
   .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--signal)}
   .gate h1{font-size:38px;line-height:1.02;font-weight:700;margin:12px 0 14px;letter-spacing:-.02em}
   .gate h1 em{font-style:normal;color:var(--signal)}
@@ -199,11 +199,12 @@
     color:var(--muted);font-family:var(--display);font-size:12px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
   .seg button.on{border-color:transparent;color:#0a0b10;background:linear-gradient(180deg,#fff0a0,var(--volt))}
   /* START button = drag-strip launch */
-  .start{margin-top:22px;align-self:stretch;width:100%;height:64px;border:none;border-radius:18px;
+  .start{position:fixed;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:55;
+    width:auto;margin:0;height:62px;border:none;border-radius:18px;
     background:linear-gradient(180deg,#ffd24d,var(--signal));color:#1c0a04;
     font-family:var(--display);font-size:21px;letter-spacing:.06em;text-transform:uppercase;
     box-shadow:0 10px 34px rgba(255,90,46,.5), inset 0 0 0 2px rgba(255,255,255,.25);
-    position:relative;overflow:hidden}
+    overflow:hidden}
   .start::before{content:"";position:absolute;left:0;top:0;bottom:0;width:26px;
     background:repeating-conic-gradient(#1c0a04 0% 25%, #ffd24d 0% 50%) 0/13px 13px}
   .start:active{transform:scale(.98)}
