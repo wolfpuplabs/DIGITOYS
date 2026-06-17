@@ -306,6 +306,14 @@
     box-shadow:0 0 0 2px #6e4d17, 0 0 0 4px rgba(255,210,90,.35), 0 12px 30px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5)!important;
     text-shadow:0 1px 0 rgba(255,255,255,.45)}
   .start::before{background:repeating-conic-gradient(#2a1604 0% 25%, #ffd97e 0% 50%) 0/12px 12px;opacity:.85}
+
+  /* collapsible dropdown panels */
+  .mp .lbl{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;user-select:none}
+  .mp .lbl::after{content:"";flex:none;width:11px;height:11px;border-right:2.5px solid #7fe9ff;border-bottom:2.5px solid #7fe9ff;
+    transform:rotate(-45deg);transition:transform .2s;opacity:.9}
+  .mp.open .lbl::after{transform:rotate(45deg)}
+  .mpbody{display:none;margin-top:14px}
+  .mp.open > .mpbody{display:block}
 </style>
 </head>
 <body>
@@ -838,6 +846,17 @@ glbfile.addEventListener('change',async e=>{
     upst.innerHTML='Model: <b style="color:var(--lock)">'+f.name+'</b> (only on your screen)';
     if(car){ scene.remove(car); car=null; }   // rebuild on next place
   }catch(err){ upst.textContent='Failed to read file: '+err.message; uploadedGlb=null; }
+});
+
+/* ---------- collapsible menu panels (dropdowns) ---------- */
+document.querySelectorAll('.gate .mp').forEach((panel,idx)=>{
+  const lbl=panel.querySelector('.lbl'); if(!lbl) return;
+  const body=document.createElement('div'); body.className='mpbody';
+  let n=lbl.nextSibling;
+  while(n){ const next=n.nextSibling; body.appendChild(n); n=next; }
+  panel.appendChild(body);
+  lbl.addEventListener('click',()=>panel.classList.toggle('open'));
+  if(idx===0) panel.classList.add('open');     // Multiplayer terbuka default
 });
 
 /* ---------- start AR ---------- */
