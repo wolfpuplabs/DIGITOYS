@@ -113,7 +113,9 @@
     font-weight:600;font-size:13px;cursor:pointer}
   .rbtn:active{transform:scale(.95)} .boost{background:var(--signal);color:#1a0d09;border:none;font-weight:700}
   .gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;
-    justify-content:flex-start;padding:calc(env(safe-area-inset-top) + 26px) 26px calc(env(safe-area-inset-bottom) + 96px);overflow-y:auto}
+    justify-content:flex-start;padding:0;overflow:hidden}
+  .gatescroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:calc(env(safe-area-inset-top) + 22px) 22px 18px}
   .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--signal)}
   .gate h1{font-size:38px;line-height:1.02;font-weight:700;margin:12px 0 14px;letter-spacing:-.02em}
   .gate h1 em{font-style:normal;color:var(--signal)}
@@ -302,26 +304,46 @@
   .arena-actions .prim,.builder .prim,.result .again{filter:saturate(1.05)}
   .carsw{background:linear-gradient(180deg,#2a2f38,#171b21);border-color:rgba(255,255,255,.16)}
   /* GOLD launch button (PLAY GAME / START) */
-  .start{background:linear-gradient(180deg,#ffe7a3 0%,#f4b441 46%,#cf8a22 56%,#ffd97e 100%)!important;color:#2a1604!important;
-    box-shadow:0 0 0 2px #6e4d17, 0 0 0 4px rgba(255,210,90,.35), 0 12px 30px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5)!important;
-    text-shadow:0 1px 0 rgba(255,255,255,.45)}
+  .start{position:static!important;left:auto;right:auto;bottom:auto;width:100%!important;margin:0!important;
+    height:auto!important;border-radius:0!important;padding:18px 0 calc(env(safe-area-inset-bottom) + 18px)!important;
+    background:linear-gradient(180deg,#ffe7a3 0%,#f4b441 46%,#cf8a22 56%,#ffd97e 100%)!important;color:#2a1604!important;
+    box-shadow:0 -8px 24px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.5)!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.45);flex:none}
   .start::before{background:repeating-conic-gradient(#2a1604 0% 25%, #ffd97e 0% 50%) 0/12px 12px;opacity:.85}
 
   /* collapsible dropdown panels */
+  .hero{width:100%;max-width:560px;display:block;border-radius:16px;border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 10px 34px rgba(0,0,0,.6), 0 0 0 1px rgba(35,227,255,.12);margin:2px 0 0}
   .mp .lbl{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;user-select:none}
   .mp .lbl::after{content:"";flex:none;width:11px;height:11px;border-right:2.5px solid #7fe9ff;border-bottom:2.5px solid #7fe9ff;
     transform:rotate(-45deg);transition:transform .2s;opacity:.9}
   .mp.open .lbl::after{transform:rotate(45deg)}
   .mpbody{display:none;margin-top:14px}
   .mp.open > .mpbody{display:block}
+
+  /* AR HUD: control icons + metal-neon */
+  .pedal{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+  .pedal svg{width:30px;height:30px}
+  .pedal span{font-family:var(--display);font-size:15px;letter-spacing:.05em;line-height:1}
+  .nitrobtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+  .nitrobtn svg{width:26px;height:26px}
+  .nitrobtn span{font-family:var(--display);font-size:11px;letter-spacing:.05em}
+  .topctrl .iconbtn{background:linear-gradient(180deg,rgba(54,60,70,.9),rgba(22,26,33,.9));border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 2px 10px rgba(0,0,0,.45)}
+  .hpbar,.nbar{border:1px solid rgba(255,255,255,.2);background:rgba(10,13,18,.72);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 3px 12px rgba(0,0,0,.45)}
+  .statusbar{font-family:var(--mono);letter-spacing:.12em;color:#9fb0c2}
+  .board{background:linear-gradient(180deg,rgba(40,46,56,.9),rgba(18,22,28,.92))!important;
+    border:1px solid rgba(255,255,255,.14)!important;box-shadow:0 6px 18px rgba(0,0,0,.5)!important}
+  .wheel{background:radial-gradient(circle at 50% 38%,rgba(40,48,58,.55),rgba(10,13,18,.75))!important;
+    border:1px solid rgba(255,255,255,.2)!important;box-shadow:0 8px 24px rgba(0,0,0,.5), inset 0 0 18px rgba(255,107,61,.12)!important}
 </style>
 </head>
 <body>
 
 <div class="gate" id="gate">
   <div class="title">
-    <div class="kicker">Wolfpup Labs · AR Kart Battle</div>
-    <h1 class="logo">KART<br>CRASH</h1>
+    <img class="hero" src="header.jpg" alt="KART CRASH" />
     <div class="flagband"></div>
     <p>Solo starts instantly. Multiplayer: everyone enters the same room code (the host shares the arena & mode). Playing alone? Race the bots.</p>
   </div>
@@ -449,17 +471,28 @@
 
   <div class="drivebar" id="drivebar">
     <div class="pedals">
-      <button class="pedal gas" id="gas">GO</button>
-      <button class="pedal brake" id="brake">BRAKE</button>
+      <button class="pedal gas" id="gas">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 14l7-8 7 8M5 19l7-8 7 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>GO</span>
+      </button>
+      <button class="pedal brake" id="brake">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg>
+        <span>BRAKE</span>
+      </button>
     </div>
-    <button class="nitrobtn" id="nitro">⚡<br>NITRO</button>
+    <button class="nitrobtn" id="nitro">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="currentColor"/></svg>
+      <span>NITRO</span>
+    </button>
     <div class="wheel" id="wheel" title="Drag to steer">
       <svg viewBox="0 0 100 100" width="100%" height="100%">
-        <circle cx="50" cy="50" r="44" fill="none" stroke="#ff6b4a" stroke-width="7" opacity="0.95"/>
-        <circle cx="50" cy="50" r="13" fill="#ff6b4a"/>
-        <rect x="46.5" y="13" width="7" height="26" rx="3" fill="#ff6b4a"/>
-        <rect x="13" y="55" width="30" height="7" rx="3" fill="#ff6b4a" transform="rotate(28 50 50)"/>
-        <rect x="57" y="55" width="30" height="7" rx="3" fill="#ff6b4a" transform="rotate(-28 50 50)"/>
+        <circle cx="50" cy="50" r="45" fill="rgba(10,13,18,.35)" stroke="#ff6b3d" stroke-width="7"/>
+        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
+        <circle cx="50" cy="50" r="13" fill="#ff6b3d"/>
+        <circle cx="50" cy="50" r="6" fill="#1a0d09"/>
+        <rect x="46.5" y="12" width="7" height="27" rx="3" fill="#ff6b3d"/>
+        <rect x="12" y="55" width="31" height="7" rx="3" fill="#ff6b3d" transform="rotate(28 50 50)"/>
+        <rect x="57" y="55" width="31" height="7" rx="3" fill="#ff6b3d" transform="rotate(-28 50 50)"/>
       </svg>
     </div>
   </div>
@@ -858,6 +891,12 @@ document.querySelectorAll('.gate .mp').forEach((panel,idx)=>{
   lbl.addEventListener('click',()=>panel.classList.toggle('open'));
   if(idx===0) panel.classList.add('open');     // Multiplayer terbuka default
 });
+// gate jadi: [area scroll] + [footer START] -> START selalu kelihatan, konten scroll di atasnya (fix landscape)
+(function(){ const g=$('gate'), st=$('start'); if(!g||!st) return;
+  const gs=document.createElement('div'); gs.className='gatescroll';
+  let n=g.firstChild; while(n){ const next=n.nextSibling; if(n!==st) gs.appendChild(n); n=next; }
+  g.insertBefore(gs, st);
+})();
 
 /* ---------- start AR ---------- */
 startBtn.addEventListener('click',startAR);
@@ -903,8 +942,8 @@ function initThree(){
   if(renderer) return;
   scene=new THREE.Scene();
   camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,30);
-  scene.add(new THREE.HemisphereLight(0xeaf2ff,0x3a4452,0.75));   // fill lembut
-  keyLight=new THREE.DirectionalLight(0xfff4e2,2.6); keyLight.position.set(.6,1.4,.5);  // key untuk kontras
+  scene.add(new THREE.HemisphereLight(0xeaf2ff,0x3a4452,0.5));   // fill lembut
+  keyLight=new THREE.DirectionalLight(0xfff4e2,2.0); keyLight.position.set(.6,1.4,.5);  // key untuk kontras
   keyLight.castShadow=true; keyLight.shadow.mapSize.set(1024,1024);
   keyLight.shadow.camera.near=0.05; keyLight.shadow.camera.far=5;
   keyLight.shadow.camera.left=-1.4; keyLight.shadow.camera.right=1.4; keyLight.shadow.camera.top=1.4; keyLight.shadow.camera.bottom=-1.4;
@@ -912,7 +951,7 @@ function initThree(){
   scene.add(keyLight); scene.add(keyLight.target);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
   renderer.setPixelRatio(devicePixelRatio); renderer.setSize(innerWidth,innerHeight);
-  renderer.xr.enabled=true; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+  renderer.xr.enabled=true; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.92;
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
   // env hanya untuk pantulan halus (intensitas rendah lewat material), bukan flat fill
@@ -969,7 +1008,7 @@ function fitCarModel(model){
   // de-darken: tone down metalness so it isn't black, keep textures
   model.traverse(o=>{ if(o.isMesh&&o.material){ const ms=Array.isArray(o.material)?o.material:[o.material];
     for(const m of ms){ if('metalness' in m){ m.metalness=Math.min(m.metalness,0.15); } if('roughness' in m){ m.roughness=Math.max(0.45,m.roughness); }
-      if('envMapIntensity' in m) m.envMapIntensity=1.1; m.needsUpdate=true; } } });
+      if('envMapIntensity' in m) m.envMapIntensity=0.45; m.needsUpdate=true; } } });
   // auto-fit footprint ~0.2 m and drop onto ground
   let box=new THREE.Box3().setFromObject(model), size=new THREE.Vector3(); box.getSize(size);
   const s=0.2/Math.max(size.x,size.z,1e-3); model.scale.setScalar(s);
@@ -1098,7 +1137,7 @@ function spawnObstacles(){
   const place=(sx,sz)=>{ const o=new THREE.Mesh(coneGeo,coneMat);
     if(calib){ const lp=sharedToLocal(sx,sz); o.position.set(lp.x,arenaCenter.y+0.045,lp.z); }
     else o.position.set(arenaCenter.x+sx,arenaCenter.y+0.045,arenaCenter.z+sz);
-    o.userData.r=0.05; scene.add(o); obstacles.push(o); };
+    o.userData.r=0.05; o.castShadow=true; scene.add(o); obstacles.push(o); };
   if(customCones && customCones.length){ for(const c of customCones) place(c.x,c.z); }
   else { for(let i=0;i<N_OBSTACLES;i++){ const a=rng()*Math.PI*2, r=0.4+rng()*(ARENA_RADIUS-0.55); place(Math.cos(a)*r,Math.sin(a)*r); } }
 }
@@ -1117,7 +1156,7 @@ function makePowerup(type){
   const col=PU_TYPES[type].color;
   const core=new THREE.Mesh(new THREE.IcosahedronGeometry(0.035,0),
     new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.6,roughness:.3,metalness:.4}));
-  g.add(core);
+  g.add(core); core.castShadow=true;
   const ring=new THREE.Mesh(new THREE.RingGeometry(0.05,0.062,24).rotateX(-Math.PI/2),
     new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.6,side:THREE.DoubleSide}));
   ring.position.y=-0.03; g.add(ring);
