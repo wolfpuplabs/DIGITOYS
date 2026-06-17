@@ -24,6 +24,7 @@
     color:var(--ink);font-family:var(--sans);font-size:16px;
     -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;touch-action:none}
   canvas{display:block}
+  .hud,.gate,.builder,button,.modebtn,.seg button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .hud{position:fixed;inset:0;pointer-events:none;z-index:10}
   .statusbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;
     padding:calc(env(safe-area-inset-top) + 14px) 16px 14px;
@@ -49,23 +50,25 @@
   .place:active{transform:scale(.95)} .place:disabled{opacity:.4;box-shadow:none}
   .ghost{background:var(--panel);border:1px solid var(--stroke);color:var(--ink);backdrop-filter:blur(10px);box-shadow:none}
   .drivebar{position:absolute;left:0;right:0;bottom:0;display:none;align-items:flex-end;
-    justify-content:space-between;padding:0 22px calc(env(safe-area-inset-bottom) + 26px);pointer-events:auto}
+    justify-content:space-between;padding:0 28px calc(env(safe-area-inset-bottom) + 30px);pointer-events:auto;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .jlbl{position:absolute;left:0;right:0;bottom:-18px;text-align:center;font-family:var(--mono);
     font-size:9px;letter-spacing:.12em;color:var(--muted)}
-  .pedals{display:flex;flex-direction:column;gap:12px}
-  .pedal{width:96px;height:62px;border-radius:18px;border:1px solid var(--stroke);
-    font-family:var(--sans);font-weight:700;font-size:16px;letter-spacing:.04em;cursor:pointer;
-    backdrop-filter:blur(10px);transition:transform .08s,filter .08s;color:#0b0e13}
+  .pedals{display:flex;flex-direction:column;gap:16px}
+  .pedal{width:118px;height:78px;border-radius:20px;border:1px solid var(--stroke);
+    font-family:var(--sans);font-weight:700;font-size:19px;letter-spacing:.04em;cursor:pointer;
+    backdrop-filter:blur(10px);transition:transform .08s,filter .08s;color:#0b0e13;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .pedal:active{transform:scale(.94)}
   .pedal.gas{background:linear-gradient(180deg,#7af0c0,#34e0c4)}
   .pedal.brake{background:linear-gradient(180deg,#ff8a6a,#ff6b4a)}
   .pedal.on{filter:brightness(1.25)}
-  .wheel{width:132px;height:132px;border-radius:50%;touch-action:none;cursor:grab;
+  .wheel{width:176px;height:176px;border-radius:50%;touch-action:none;cursor:grab;
     background:radial-gradient(circle at 50% 50%,rgba(20,26,34,.5),rgba(11,14,19,.72));
     border:1px solid var(--stroke);backdrop-filter:blur(10px);display:grid;place-items:center;
-    will-change:transform}
+    will-change:transform;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .wheel:active{cursor:grabbing}
-  .wheel svg{width:88%;height:88%;pointer-events:none}
+  .wheel svg{width:86%;height:86%;pointer-events:none}
   .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 46px);right:14px;display:none;
     align-items:center;gap:8px;pointer-events:auto}
   .board{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:14px;display:none;
@@ -83,10 +86,10 @@
   .nfill{position:absolute;inset:0;width:100%;background:linear-gradient(90deg,#4ab8ff,#8fd6ff);transition:width .1s}
   .ntxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-family:var(--mono);font-size:9px;color:#04203a;font-weight:700;letter-spacing:.08em}
-  .nitrobtn{align-self:flex-end;width:74px;height:74px;border-radius:50%;border:none;cursor:pointer;
+  .nitrobtn{align-self:flex-end;width:88px;height:88px;border-radius:50%;border:none;cursor:pointer;
     background:linear-gradient(180deg,#8fd6ff,#4ab8ff);color:#04203a;font-family:var(--sans);
-    font-weight:800;font-size:11px;line-height:1.1;box-shadow:0 4px 18px rgba(74,184,255,.45);
-    transition:transform .08s,filter .08s}
+    font-weight:800;font-size:12px;line-height:1.1;box-shadow:0 4px 18px rgba(74,184,255,.45);
+    transition:transform .08s,filter .08s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .nitrobtn:active{transform:scale(.92)} .nitrobtn.on{filter:brightness(1.3)}
   .nitrobtn:disabled{filter:grayscale(.7) brightness(.7);box-shadow:none}
   .iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--stroke);
@@ -169,7 +172,13 @@
     font-size:14px;letter-spacing:.04em;border:none;box-shadow:0 6px 20px rgba(35,227,255,.35)}
   .mp .st b{color:var(--volt)}
   /* mode cards */
-  #modes{gap:9px}
+  #modes{gap:9px;flex-wrap:wrap}
+  .modebtn[data-mode]{flex:1 1 28%;min-width:88px}
+  .carsel{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .carsw{width:52px;height:52px;border-radius:14px;border:2px solid var(--stroke);cursor:pointer;
+    position:relative;background:#11131a;-webkit-user-select:none;user-select:none}
+  .carsw i{position:absolute;inset:9px;border-radius:8px;display:block}
+  .carsw.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,225,77,.5)}
   .modebtn[data-mode]{height:auto!important;padding:13px 6px!important;display:flex;flex-direction:column;
     gap:5px;align-items:center;border-radius:15px!important;opacity:1!important;
     font-family:var(--display)!important;font-size:12px!important;letter-spacing:.03em;text-transform:uppercase;
@@ -277,6 +286,7 @@
       <button class="modebtn on" data-mode="survival"><span class="mi">🏁</span>Survival</button>
       <button class="modebtn" data-mode="deathmatch"><span class="mi">💥</span>Deathmatch</button>
       <button class="modebtn" data-mode="sumo"><span class="mi">⭕</span>Sumo</button>
+      <button class="modebtn" data-mode="freeroam"><span class="mi">🛣️</span>Free Roam</button>
     </div>
     <div class="st" id="moderule">Last car standing — lose the round when HP hits 0. First to 3 wins.</div>
     <div class="row">
@@ -299,6 +309,12 @@
       <button id="openBuilder" class="prim">🧱 Arena Builder</button>
     </div>
     <div class="st" id="arenaSt">Slide to resize. Builder: place cones & save an arena code to share.</div>
+  </div>
+
+  <div class="mp" style="margin-top:14px">
+    <div class="lbl">Select car</div>
+    <div class="carsel" id="carsel"></div>
+    <div class="st">Pick your color. In multiplayer rivals always show in blue (your look is local).</div>
   </div>
 
   <div class="mp" style="margin-top:14px">
@@ -476,7 +492,10 @@ let gameMode='survival';
 const MODE_RULE={
   survival:'Last car standing — lose the round when HP hits 0. First to 3 wins.',
   deathmatch:'Respawn forever. First to 8 takedowns wins.',
-  sumo:'No HP — shove rivals out of the ring. Last one in wins. First to 3.'};
+  sumo:'No HP — shove rivals out of the ring. Last one in wins. First to 3.',
+  freeroam:'No walls, no losing — just cruise & smash. Power-ups spawn around. Multiplayer-friendly.'};
+const CAR_COLORS=[{n:'Orange',c:0xff6b3d},{n:'Cyan',c:0x23e3ff},{n:'Magenta',c:0xff2d7e},{n:'Lime',c:0x5dff8b},{n:'Volt',c:0xffe14d},{n:'Purple',c:0xb06bff}];
+let myCarColor=0xff6b3d;
 const ROUND_TARGET=3, SCORE_TARGET=8;
 let eliminated=false, roundResolving=false, matchOver=false, roundPlayers=0;
 const wins={};             // id -> round wins
@@ -510,6 +529,14 @@ resAgain.addEventListener('click',()=>{ resetMatch(); resetRound(); });
 botBtns.forEach(b=>b.addEventListener('click',()=>{
   botCount=+b.dataset.bots; botBtns.forEach(x=>x.classList.toggle('on',x===b));
 }));
+// car color picker
+const carselEl=$('carsel');
+CAR_COLORS.forEach((co,i)=>{ const b=document.createElement('button'); b.className='carsw'+(i===0?' on':'');
+  b.innerHTML='<i style="background:#'+co.c.toString(16).padStart(6,'0')+'"></i>'; b.title=co.n;
+  b.addEventListener('click',()=>{ myCarColor=co.c; [...carselEl.children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    if(car&&car.userData.setBody) car.userData.setBody(myCarColor); });
+  carselEl.appendChild(b);
+});
 function reflectMode(){
   modeBtns.forEach(x=>x.classList.toggle('on',x.dataset.mode===gameMode));
   moderule.textContent=MODE_RULE[gameMode];
@@ -819,7 +846,8 @@ function buildProceduralCar(color=0xff6b4a){
     const w=new THREE.Mesh(wGeo,dark); pivot.add(w); aw.push(w);
     if(k==='F') fw.push(pivot);
   }
-  g.userData.front=fw; g.userData.all=aw;
+  g.userData.front=fw; g.userData.all=aw; g.userData.paint=paint;
+  g.userData.setBody=(hex)=>{ paint.color.setHex(hex); };
   return g;
 }
 function mk(geo,mat,pos,rot){const m=new THREE.Mesh(geo,mat);m.position.set(...pos);if(rot)m.rotation.set(...rot);return m;}
@@ -908,7 +936,7 @@ async function placeCar(refMatrixObj){
 
 async function startDriving(){
   if(building) return;
-  if(!car){ building=true; car=await buildCar(); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
+  if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
   ownHP=100; dead=false; eliminated=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
   topctrl.style.display='flex';                       // HP + nitro tampil di solo & MP
@@ -933,7 +961,8 @@ function repark(){
 
 /* ---------- arena / obstacles / marks ---------- */
 function buildArena(){
-  if(arenaRing) scene.remove(arenaRing);
+  if(arenaRing){ scene.remove(arenaRing); arenaRing=null; }
+  if(gameMode==='freeroam') return;            // free roam: tanpa batas arena
   const R=ARENA_RADIUS;
   if(arenaShape==='square'){
     const pts=[[-R,-R],[R,-R],[R,R],[-R,R],[-R,-R]].map(p=>new THREE.Vector3(p[0],0,p[1]));
@@ -947,6 +976,7 @@ function buildArena(){
 }
 function spawnObstacles(){
   clearObstacles();
+  if(gameMode==='freeroam') return;            // free roam: tanpa cone
   const coneGeo=new THREE.ConeGeometry(0.045,0.09,18);
   const coneMat=new THREE.MeshStandardMaterial({color:0xffa033,roughness:.5,emissive:0x3a1e00});
   const place=(sx,sz)=>{ const o=new THREE.Mesh(coneGeo,coneMat);
@@ -1088,6 +1118,7 @@ function resetRound(){
 }
 function updateMatch(){
   if(!inMatch() || !carPlaced || matchOver) return;
+  if(gameMode==='freeroam') return;            // free roam: tanpa menang/kalah
   const remoteIds=Object.keys(remoteCars).filter(id=>remoteCars[id].group);
   const liveBots=bots.filter(b=>b.group);
   roundPlayers=Math.max(roundPlayers, 1+remoteIds.length+liveBots.length);
@@ -1179,7 +1210,8 @@ function updateBots(dt){
     b.speed += (want-b.speed)*2.0*dt;
     b.x += Math.sin(b.heading)*b.speed*dt; b.z += Math.cos(b.heading)*b.speed*dt;
     // bounds
-    if(inMatch() && gameMode==='sumo'){ if(outsideArena(b.x,b.z,0.03)){ botKO(b); continue; } }
+    if(gameMode==='freeroam'){ /* roam bebas */ }
+    else if(inMatch() && gameMode==='sumo'){ if(outsideArena(b.x,b.z,0.03)){ botKO(b); continue; } }
     else { const c=clampArena(b.x,b.z,CAR_R); if(c.hit){ b.x=c.x; b.z=c.z; b.heading+=Math.PI*0.6; b.speed*=0.5; } }
     // obstacles
     for(const o of obstacles){ const ox=b.x-o.position.x,oz=b.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
@@ -1209,8 +1241,9 @@ function spawnBurst(pos,color,count=12,power=1){
     if(!p){
       if(PARTICLES.length>=PMAX){ p=PARTICLES.reduce((a,b)=>a.life<b.life?a:b); }
       else { const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
-        m.renderOrder=9; scene.add(m); p={mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,alive:false}; PARTICLES.push(p); }
+        m.renderOrder=9; scene.add(m); p={mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,alive:false,smoke:false}; PARTICLES.push(p); }
     }
+    p.smoke=false; p.mesh.material.blending=THREE.AdditiveBlending;
     p.mesh.material.color.setHex(color);
     p.mesh.position.copy(pos);
     const a=Math.random()*Math.PI*2, sp=(0.3+Math.random()*0.7)*power;
@@ -1218,15 +1251,31 @@ function spawnBurst(pos,color,count=12,power=1){
     p.maxLife=p.life=0.35+Math.random()*0.3; p.alive=true; p.mesh.visible=true; p.mesh.scale.setScalar(1);
   }
 }
+function spawnSmoke(pos,count=6,power=1){
+  for(let i=0;i<count;i++){
+    let p=PARTICLES.find(q=>!q.alive);
+    if(!p){
+      if(PARTICLES.length>=PMAX){ p=PARTICLES.reduce((a,b)=>a.life<b.life?a:b); }
+      else { const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));
+        m.renderOrder=8; scene.add(m); p={mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,alive:false,smoke:false}; PARTICLES.push(p); }
+    }
+    p.smoke=true; p.mesh.material.blending=THREE.NormalBlending; p.mesh.material.color.setHex(0x9aa3ad);
+    p.mesh.position.copy(pos); p.mesh.position.y+=0.01;
+    const a=Math.random()*Math.PI*2, sp=(0.08+Math.random()*0.16)*power;
+    p.vel.set(Math.cos(a)*sp,(0.12+Math.random()*0.2)*power,Math.sin(a)*sp);
+    p.maxLife=p.life=0.6+Math.random()*0.5; p.alive=true; p.mesh.visible=true; p.mesh.scale.setScalar(1);
+  }
+}
 function updateParticles(dt){
   for(const p of PARTICLES){
     if(!p.alive) continue;
     p.life-=dt;
     if(p.life<=0){ p.alive=false; p.mesh.visible=false; continue; }
-    p.vel.y-=1.4*dt;
-    p.mesh.position.addScaledVector(p.vel,dt);
     const t=p.life/p.maxLife;
-    p.mesh.material.opacity=t; p.mesh.scale.setScalar(0.4+t*0.9);
+    if(p.smoke){ p.vel.y+=0.2*dt; p.vel.multiplyScalar(1-0.7*dt); p.mesh.position.addScaledVector(p.vel,dt);
+      p.mesh.material.opacity=t*0.5; p.mesh.scale.setScalar(0.8+(1-t)*3.4); }
+    else { p.vel.y-=1.4*dt; p.mesh.position.addScaledVector(p.vel,dt);
+      p.mesh.material.opacity=t; p.mesh.scale.setScalar(0.4+t*0.9); }
   }
 }
 function spark(x,z,color){
@@ -1315,6 +1364,21 @@ function updateAudio(){
   engGain.gain.setTargetAtTime(0.10 + sp*0.12 + Math.abs(throttleInput)*0.06,now,tc);
   screechGain.gain.setTargetAtTime(drifting?0.16*Math.min(1,sp+0.3):0,now,0.05);
 }
+let lastCrashT=0;
+function sfxCrash(intensity){
+  if(!audioCtx||muted) return; const now=audioCtx.currentTime;
+  if(now-lastCrashT<0.05) return; lastCrashT=now;
+  const v=Math.max(0.12,Math.min(0.55,intensity));
+  const len=Math.floor(audioCtx.sampleRate*0.18), buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1600+v*1400;
+  const g=audioCtx.createGain(); g.gain.setValueAtTime(v,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.16);
+  src.connect(lp); lp.connect(g); g.connect(master); src.start();
+  const o=audioCtx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(150,now); o.frequency.exponentialRampToValueAtTime(48,now+0.12);
+  const og=audioCtx.createGain(); og.gain.setValueAtTime(v*0.9,now); og.gain.exponentialRampToValueAtTime(0.001,now+0.17);
+  o.connect(og); og.connect(master); o.start(); o.stop(now+0.19);
+}
 function toggleMute(){
   muted=!muted; muteBtn.textContent=muted?'🔇':'🔊';
   if(audioCtx) master.gain.setTargetAtTime(muted?0:0.9,audioCtx.currentTime,0.05);
@@ -1327,8 +1391,8 @@ function render(t,frame){
     const res=frame.getHitTestResults(hitTestSource);
     if(res.length){
       reticle.visible=true; reticle.matrix.fromArray(res[0].getPose(localSpace).transform.matrix);
-      if(!surfaceFound){ surfaceFound=true; dot.className='dot locked'; statusT.textContent='Permukaan terkunci'; placeBtn.disabled=false;
-        if(isMP){ placeBtn.textContent=calA?'Set point B':'Set point A'; hint.textContent='Tap point '+(calA?'B':'A')+' (sama untuk semua pemain)'; }
+      if(!surfaceFound){ surfaceFound=true; dot.className='dot locked'; statusT.textContent='Surface locked'; placeBtn.disabled=false;
+        if(isMP){ placeBtn.textContent=calA?'Set point B':'Set point A'; hint.textContent='Tap point '+(calA?'B':'A')+' (same spot for everyone)'; }
         else hint.textContent='Tap "Place car"'; }
     }else{ reticle.visible=false;
       if(surfaceFound){ surfaceFound=false; dot.className='dot searching'; statusT.textContent='Looking for a surface…'; placeBtn.disabled=true; } }
@@ -1361,9 +1425,10 @@ function driveCar(dt){
   heading+=-steerInput*speed*TURN_RATE*dt;
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
-  // arena bounds (sumo: keluar arena = KO; mode lain: mentok)
+  // arena bounds (free roam: tanpa batas; sumo: keluar = KO; lainnya: mentok)
   let dx=car.position.x-arenaCenter.x,dz=car.position.z-arenaCenter.z,dist=Math.hypot(dx,dz);
-  if(inMatch() && gameMode==='sumo'){
+  if(gameMode==='freeroam'){ /* roam bebas */ }
+  else if(inMatch() && gameMode==='sumo'){
     if(!eliminated && outsideArena(car.position.x,car.position.z,0.03)){ spawnBurst(car.position,0xffd24a,20,1.2); handleKO(); return; }
   } else { const c=clampArena(car.position.x,car.position.z,CAR_R); if(c.hit){ car.position.x=c.x; car.position.z=c.z; speed*=-0.35; } }
   // obstacle collision (+ damage saat kena cone)
@@ -1371,6 +1436,7 @@ function driveCar(dt){
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
     if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;
       if(Math.abs(speed)>0.1) spark((car.position.x+o.position.x)/2,(car.position.z+o.position.z)/2,0xffae42);
+      if(Math.abs(speed)>0.25){ sfxCrash(Math.abs(speed)*0.45); spawnSmoke(o.position,5,1); }
       const nowO=performance.now();
       if(!SERVER_URL && !shielded() && Math.abs(speed)>0.15 && nowO-lastObsHitT>HIT_COOLDOWN){
         lastObsHitT=nowO; localDamage(4+Math.abs(speed)*25);
@@ -1387,6 +1453,8 @@ function driveCar(dt){
         const nx=ox/d,nz=oz/d;
         car.position.x=g.position.x+nx*min; car.position.z=g.position.z+nz*min;
         if(Math.abs(speed)>0.1) spark((car.position.x+g.position.x)/2,(car.position.z+g.position.z)/2,0x9fe8ff);
+        { const mid=new THREE.Vector3((car.position.x+g.position.x)/2,arenaCenter.y+0.03,(car.position.z+g.position.z)/2);
+          sfxCrash(Math.abs(speed)*0.5+0.15); spawnSmoke(mid,6,1.1); }
         speed*=-0.45;
         if(!SERVER_URL && now-lastHitT>HIT_COOLDOWN){
           lastHitT=now;
@@ -1407,6 +1475,8 @@ function driveCar(dt){
         const nx=ox/d,nz=oz/d;
         car.position.x=b.x+nx*min; car.position.z=b.z+nz*min;
         if(Math.abs(speed)>0.1) spark((car.position.x+b.x)/2,(car.position.z+b.z)/2,0xff9a4a);
+        if(Math.abs(speed)>0.18||Math.abs(b.speed)>0.18){ const mid=new THREE.Vector3((car.position.x+b.x)/2,arenaCenter.y+0.03,(car.position.z+b.z)/2);
+          sfxCrash(Math.max(Math.abs(speed),Math.abs(b.speed))*0.5+0.12); spawnSmoke(mid,6,1.1); }
         const myV=Math.abs(speed), botV=Math.abs(b.speed); speed*=-0.4;
         if(now-lastHitT>HIT_COOLDOWN){ lastHitT=now;
           if(gameMode==='sumo'){
