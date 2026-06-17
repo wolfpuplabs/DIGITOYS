@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>RC Arena · Markerless AR · Multiplayer</title>
+<title>KART CRASH · AR Kart Battle · Wolfpup Labs</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
   :root{
@@ -262,14 +262,58 @@
     background:var(--volt);color:#1a1604;font-family:var(--display);font-size:13px;letter-spacing:.03em;
     padding:10px 18px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none}
   .toast.show{opacity:1}
+
+  /* ================= KART CRASH SKIN ================= */
+  .gate{background:
+      radial-gradient(120% 70% at 50% -8%, rgba(35,227,255,.12), transparent 55%),
+      radial-gradient(90% 60% at 50% 112%, rgba(255,120,30,.10), transparent 55%),
+      linear-gradient(180deg,#0d1118 0%, #090c11 55%, #06080b 100%)}
+  .title{position:relative}
+  .title .kicker{color:#7fe9ff;text-shadow:0 0 10px rgba(35,227,255,.5)}
+  .title .logo{font-family:var(--display);font-weight:400;text-align:left;line-height:.82;
+    font-size:clamp(58px,19vw,104px);letter-spacing:.01em;
+    background:linear-gradient(180deg,#f2f5f8 0%,#b9c0c9 38%,#737c88 52%,#cdd4dc 70%,#838b95 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+    -webkit-text-stroke:2px #23272e;
+    filter:drop-shadow(0 3px 0 #15181d) drop-shadow(0 8px 12px rgba(0,0,0,.65)) drop-shadow(0 0 18px rgba(35,227,255,.25))}
+  .flagband{height:12px;margin:16px 0 18px;border:1px solid rgba(255,255,255,.12)}
+  .gate p{color:#aeb7c4}
+  /* metal panels with neon side rails (like the reference buttons) */
+  .mp{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.10);border-radius:14px;
+    background:linear-gradient(180deg,rgba(46,52,62,.92),rgba(22,26,33,.94));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 8px 22px rgba(0,0,0,.55)}
+  .mp::before,.mp::after{content:"";position:absolute;top:12px;bottom:12px;width:3px;border-radius:3px;
+    background:linear-gradient(180deg,#4debff,#0bb4e6);box-shadow:0 0 12px rgba(35,227,255,.85)}
+  .mp::before{left:0} .mp::after{right:0}
+  .mp .lbl{color:#d6ecff;text-shadow:0 0 8px rgba(35,227,255,.45)}
+  .mp input{background:#0a0d12;border:1px solid rgba(255,255,255,.14)}
+  .mp button.act{background:linear-gradient(180deg,#5ff0ff,#16a8d8);color:#04222c;
+    box-shadow:0 0 0 1px rgba(255,255,255,.15), 0 6px 18px rgba(35,227,255,.4)}
+  /* metal mode tiles */
+  .modebtn[data-mode]{background:linear-gradient(180deg,rgba(64,70,80,.95),rgba(28,32,40,.95))!important;
+    border:1px solid rgba(255,255,255,.12)!important;color:#c6cdd7!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+  .modebtn[data-mode].on{background:linear-gradient(180deg,#fff0a0,var(--volt))!important;color:#1a1604!important;
+    border-color:transparent!important;box-shadow:0 0 18px rgba(255,225,77,.55)!important}
+  #botsel .modebtn,.seg button{background:linear-gradient(180deg,rgba(64,70,80,.95),rgba(28,32,40,.95))!important;
+    border:1px solid rgba(255,255,255,.12)!important;color:#c6cdd7!important}
+  #botsel .modebtn.on{background:linear-gradient(180deg,#5ff0ff,#16a8d8)!important;color:#04222c!important;border-color:transparent!important}
+  .seg button.on{background:linear-gradient(180deg,#fff0a0,var(--volt))!important;color:#1a1604!important;border-color:transparent!important}
+  .arena-actions .prim,.builder .prim,.result .again{filter:saturate(1.05)}
+  .carsw{background:linear-gradient(180deg,#2a2f38,#171b21);border-color:rgba(255,255,255,.16)}
+  /* GOLD launch button (PLAY GAME / START) */
+  .start{background:linear-gradient(180deg,#ffe7a3 0%,#f4b441 46%,#cf8a22 56%,#ffd97e 100%)!important;color:#2a1604!important;
+    box-shadow:0 0 0 2px #6e4d17, 0 0 0 4px rgba(255,210,90,.35), 0 12px 30px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5)!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.45)}
+  .start::before{background:repeating-conic-gradient(#2a1604 0% 25%, #ffd97e 0% 50%) 0/12px 12px;opacity:.85}
 </style>
 </head>
 <body>
 
 <div class="gate" id="gate">
   <div class="title">
-    <div class="kicker">WebXR · AR · Local Multiplayer</div>
-    <h1 class="logo">RC&nbsp;ARENA</h1>
+    <div class="kicker">Wolfpup Labs · AR Kart Battle</div>
+    <h1 class="logo">KART<br>CRASH</h1>
     <div class="flagband"></div>
     <p>Solo starts instantly. Multiplayer: everyone enters the same room code (the host shares the arena & mode). Playing alone? Race the bots.</p>
   </div>
@@ -449,12 +493,13 @@ const botBtns=[...document.querySelectorAll('.modebtn[data-bots]')];
 const resultEl=$('result'),resBig=$('resbig'),resSub=$('ressub'),resCd=$('rescd'),resAgain=$('resagain');
 
 let renderer,scene,camera,reticle,controller,xrSession=null;
+let keyLight=null,shadowGround=null;
 let hitTestSource=null,localSpace=null,surfaceFound=false;
 let car=null,building=false,carPlaced=false,frontWheels=[],allWheels=[];
 const clock=new THREE.Clock();
 
 let speed=0,heading=0,steerInput=0,throttleInput=0,boost=1,drifting=false;
-const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0.022,CAR_R=0.06;
+const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0.022,CAR_R=0.09;
 
 // health / combat
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
@@ -839,15 +884,23 @@ function initThree(){
   if(renderer) return;
   scene=new THREE.Scene();
   camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,30);
-  scene.add(new THREE.HemisphereLight(0xffffff,0x44505c,1.6));
-  const d=new THREE.DirectionalLight(0xffffff,2.2); d.position.set(.5,1.2,.4); scene.add(d);
-  const d2=new THREE.DirectionalLight(0xcfe6ff,1.0); d2.position.set(-.6,.8,-.5); scene.add(d2);
+  scene.add(new THREE.HemisphereLight(0xeaf2ff,0x3a4452,0.75));   // fill lembut
+  keyLight=new THREE.DirectionalLight(0xfff4e2,2.6); keyLight.position.set(.6,1.4,.5);  // key untuk kontras
+  keyLight.castShadow=true; keyLight.shadow.mapSize.set(1024,1024);
+  keyLight.shadow.camera.near=0.05; keyLight.shadow.camera.far=5;
+  keyLight.shadow.camera.left=-1.4; keyLight.shadow.camera.right=1.4; keyLight.shadow.camera.top=1.4; keyLight.shadow.camera.bottom=-1.4;
+  keyLight.shadow.bias=-0.0006; keyLight.shadow.radius=4;
+  scene.add(keyLight); scene.add(keyLight.target);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
   renderer.setPixelRatio(devicePixelRatio); renderer.setSize(innerWidth,innerHeight);
-  renderer.xr.enabled=true; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.25;
+  renderer.xr.enabled=true; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
-  // soft environment so PBR/metallic models are lit (not black)
-  try{ const pmrem=new THREE.PMREMGenerator(renderer); scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture; }catch(e){}
+  // env hanya untuk pantulan halus (intensitas rendah lewat material), bukan flat fill
+  try{ const pmrem=new THREE.PMREMGenerator(renderer); scene.environment=pmrem.fromScene(new RoomEnvironment(),0.02).texture; }catch(e){}
+  // shadow-catcher: bidang transparan yang cuma menampilkan bayangan (grounding di AR)
+  shadowGround=new THREE.Mesh(new THREE.PlaneGeometry(4,4).rotateX(-Math.PI/2),
+    new THREE.ShadowMaterial({opacity:0.34})); shadowGround.receiveShadow=true; shadowGround.visible=false; scene.add(shadowGround);
   reticle=new THREE.Mesh(new THREE.RingGeometry(.07,.09,48).rotateX(-Math.PI/2),
     new THREE.MeshBasicMaterial({color:0x34e0c4}));
   reticle.matrixAutoUpdate=false; reticle.visible=false; scene.add(reticle);
@@ -884,8 +937,10 @@ function buildProceduralCar(color=0xff6b4a){
   }
   g.userData.front=fw; g.userData.all=aw; g.userData.paint=paint;
   g.userData.setBody=(hex)=>{ paint.color.setHex(hex); };
+  enableShadows(g);
   return g;
 }
+function enableShadows(g){ g.traverse(o=>{ if(o.isMesh) o.castShadow=true; }); }
 function mk(geo,mat,pos,rot){const m=new THREE.Mesh(geo,mat);m.position.set(...pos);if(rot)m.rotation.set(...rot);return m;}
 async function buildGlbCar(){
   const gltf=await new GLTFLoader().loadAsync(GLB_URL);
@@ -899,10 +954,12 @@ function fitCarModel(model){
   // auto-fit footprint ~0.2 m and drop onto ground
   let box=new THREE.Box3().setFromObject(model), size=new THREE.Vector3(); box.getSize(size);
   const s=0.2/Math.max(size.x,size.z,1e-3); model.scale.setScalar(s);
-  box=new THREE.Box3().setFromObject(model); model.position.y-=box.min.y;
+  box=new THREE.Box3().setFromObject(model); const ctr=new THREE.Vector3(); box.getCenter(ctr);
+  model.position.x-=ctr.x; model.position.z-=ctr.z; model.position.y-=box.min.y;  // center x/z, drop to ground
   const g=new THREE.Group(); g.add(model);
   g.userData.front=['wheel_FL','wheel_FR'].map(n=>g.getObjectByName(n)).filter(Boolean);
   g.userData.all =['wheel_FL','wheel_FR','wheel_RL','wheel_RR'].map(n=>g.getObjectByName(n)).filter(Boolean);
+  enableShadows(g);
   return g;
 }
 function buildUploadedCar(){
@@ -975,6 +1032,8 @@ async function startDriving(){
   if(building) return;
   if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
+  if(shadowGround){ shadowGround.position.set(arenaCenter.x,arenaCenter.y+0.001,arenaCenter.z); shadowGround.visible=true; }
+  if(keyLight){ keyLight.position.set(arenaCenter.x+0.6,arenaCenter.y+1.4,arenaCenter.z+0.5); keyLight.target.position.copy(arenaCenter); keyLight.target.updateMatrixWorld(); }
   ownHP=100; dead=false; eliminated=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
   topctrl.style.display='flex';                       // HP + nitro tampil di solo & MP
   buildArena(); placeArenaModel(); spawnObstacles(); spawnPowerups();
@@ -987,6 +1046,7 @@ async function startDriving(){
 
 function repark(){
   carPlaced=false; speed=0; resetControls(); calA=null; if(isMP) resetMatch();
+  if(shadowGround) shadowGround.visible=false;
   if(isMP){ calib=null; placeBtn.textContent='Set point A'; }
   if(car)car.visible=false; clearWorld();
   drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
