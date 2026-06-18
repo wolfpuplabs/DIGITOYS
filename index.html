@@ -395,9 +395,9 @@
   .pedstack{display:flex;flex-direction:column;align-items:center;gap:8px;position:relative}
   .ctl{background:none!important;border:none!important;box-shadow:none!important;padding:0;margin:0;cursor:pointer;
     -webkit-tap-highlight-color:transparent;touch-action:none;line-height:0}
-  .ctl img{display:block;width:104px;height:104px;pointer-events:none;
+  .ctl img{display:block;width:122px;height:122px;pointer-events:none;
     filter:drop-shadow(0 6px 12px rgba(0,0,0,.5));transition:transform .08s ease, filter .12s ease}
-  .ctl.gas img{width:120px;height:120px}
+  .ctl.gas img{width:142px;height:142px}
   .ctl:active img{transform:scale(.94)}
   .ctl.gas.on img{filter:drop-shadow(0 0 10px rgba(255,180,60,.7))}
   .ctl.gas.boost img{filter:drop-shadow(0 0 16px rgba(255,150,40,.95)) drop-shadow(0 0 30px rgba(255,90,20,.7));transform:scale(1.05)}
@@ -702,16 +702,18 @@ handBtns.forEach(b=>b.addEventListener('click',()=>{ wheelSide=b.dataset.hand;
 // car picker: 3 predefined pups (bots use random pups)
 /* ---------- pup roster: 3 predefined models (bot = random) ---------- */
 const PUPS=[
-  {id:'brown',url:'rc-car.glb',   name:'Brown', sw:'linear-gradient(135deg,#a06a3a,#5b3a1e)'},
-  {id:'white',url:'pup-white.glb',name:'White', sw:'linear-gradient(135deg,#f4f4f2,#c6cacf)'},
-  {id:'black',url:'pup-black.glb',name:'Black', sw:'linear-gradient(135deg,#52535a,#16171b)'},
+  {id:'brown',url:'rc-car.glb',   name:'Brown', rot:0,        sw:'linear-gradient(135deg,#a06a3a,#5b3a1e)'},
+  {id:'white',url:'pup-white.glb',name:'White', rot:Math.PI,  sw:'linear-gradient(135deg,#f4f4f2,#c6cacf)'},
+  {id:'black',url:'pup-black.glb',name:'Black', rot:Math.PI,  sw:'linear-gradient(135deg,#52535a,#16171b)'},
 ];
 let selectedPup='brown';
 const pupCache={};                 // url -> fitted template (loaded once, cloned per car)
 async function loadPup(url){ if(pupCache[url]) return pupCache[url];
   const gltf=await new GLTFLoader().loadAsync(url); pupCache[url]=fitCarModel(gltf.scene); return pupCache[url]; }
-async function buildPupCar(url){ const tpl=await loadPup(url); return tpl.clone(true); }   // shares geometry/material
-function randomPupUrl(){ return PUPS[(Math.random()*PUPS.length)|0].url; }
+async function buildPupCar(pup){ const tpl=await loadPup(pup.url); const g=tpl.clone(true);
+  if(pup.rot){ const inner=g.children[0]; if(inner) inner.rotation.y += pup.rot; }   // luruskan arah hadap
+  return g; }
+function randomPup(){ return PUPS[(Math.random()*PUPS.length)|0]; }
 const carselEl=$('carsel');
 function selCar(btn){ [...carselEl.children].forEach(x=>x.classList.remove('on')); btn.classList.add('on'); }
 PUPS.forEach((p,i)=>{ const b=document.createElement('button'); b.className='carsw pup'+(i===0?' on':''); b.title=p.name;
@@ -1113,11 +1115,11 @@ function buildUploadedCar(){
 async function buildCar(color){
   if(uploadedGlb){ try{ return await buildUploadedCar(); }catch(e){ upst.textContent='Model failed to load, using built-in.'; uploadedGlb=null; } }
   const p=PUPS.find(x=>x.id===selectedPup)||PUPS[0];
-  try{ return await buildPupCar(p.url); }catch(e){ return buildProceduralCar(color); }
+  try{ return await buildPupCar(p); }catch(e){ return buildProceduralCar(color); }
 }
 // bots + remote players: random pup
 async function buildSharedCar(color){
-  try{ return await buildPupCar(randomPupUrl()); }catch(e){ return buildProceduralCar(color); }
+  try{ return await buildPupCar(randomPup()); }catch(e){ return buildProceduralCar(color); }
 }
 
 /* ---------- name labels (billboard sprites) ---------- */
