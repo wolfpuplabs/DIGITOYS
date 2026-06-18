@@ -1031,13 +1031,6 @@ document.querySelectorAll('.gate .mp').forEach((panel,idx)=>{
 })();
 
 /* ---------- start AR ---------- */
-function goFullscreen(){ try{
-  const el=document.documentElement;
-  const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.mozRequestFullScreen;
-  const active=document.fullscreenElement||document.webkitFullscreenElement;
-  if(fn && !active){ const r=fn.call(el); if(r&&r.catch) r.catch(()=>{}); }
-}catch(e){} }
-startBtn.addEventListener('click',()=>goFullscreen());
 startBtn.addEventListener('click',startAR);
 async function startAR(){
   if(!navigator.xr || typeof navigator.xr.requestSession!=='function'){
@@ -1227,7 +1220,6 @@ async function placeCar(refMatrixObj){
 
 async function startDriving(){
   if(building) return;
-  goFullscreen();
   if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
   if(shadowGround){ shadowGround.position.set(arenaCenter.x,arenaCenter.y+0.001,arenaCenter.z); shadowGround.visible=true; }
@@ -1243,7 +1235,6 @@ async function startDriving(){
 }
 
 function repark(){
-  goFullscreen();
   carPlaced=false; speed=0; resetControls(); calA=null; if(isMP) resetMatch();
   if(shadowGround) shadowGround.visible=false;
   if(isMP){ calib=null; placeBtn.textContent='Set point A'; }
