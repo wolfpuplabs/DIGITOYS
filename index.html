@@ -2,7 +2,9 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
 <title>KART CRASH · AR Kart Battle · Wolfpup Labs</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -357,11 +359,11 @@
   .hpbar,.nbar{border-radius:8px;border:1px solid rgba(0,0,0,.5);
     background:linear-gradient(180deg,#0a0d12,#11151b);box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
   .ntxt{display:none}
-  .speedo{display:flex;align-items:baseline;gap:6px;padding:4px 14px;border-radius:12px;
+  .speedo{display:flex;align-items:baseline;gap:4px;padding:3px 10px;border-radius:10px;
     background:linear-gradient(180deg,rgba(20,24,30,.75),rgba(8,10,14,.8));border:1px solid rgba(255,255,255,.12)}
-  .speedo b{font-family:var(--display);font-size:26px;line-height:1;color:#fff;
-    text-shadow:0 0 12px rgba(35,227,255,.5);font-variant-numeric:tabular-nums}
-  .speedo i{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#9fb0c2}
+  .speedo b{font-family:var(--display);font-size:19px;line-height:1;color:#fff;
+    text-shadow:0 0 10px rgba(35,227,255,.5);font-variant-numeric:tabular-nums}
+  .speedo i{font-style:normal;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:#9fb0c2}
 
   /* pedal cluster (bottom-left) */
   .drivebar{padding:0 18px calc(env(safe-area-inset-bottom) + 14px)}
@@ -396,16 +398,16 @@
   .pedstack{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
   .ctl{background:none!important;border:none!important;box-shadow:none!important;padding:0;margin:0;cursor:pointer;
     -webkit-tap-highlight-color:transparent;touch-action:none;line-height:0}
-  .ctl img{display:block;width:122px;height:122px;pointer-events:none;
+  .ctl img{display:block;width:134px;height:134px;pointer-events:none;
     filter:drop-shadow(0 6px 12px rgba(0,0,0,.5));transition:transform .08s ease, filter .12s ease}
-  .ctl.gas img{width:142px;height:142px}
+  .ctl.gas img{width:156px;height:156px}
   .ctl:active img{transform:scale(.94)}
   .ctl.gas.on img{filter:drop-shadow(0 0 10px rgba(255,180,60,.7))}
   .ctl.gas.boost img{filter:drop-shadow(0 0 16px rgba(255,150,40,.95)) drop-shadow(0 0 30px rgba(255,90,20,.7));transform:scale(1.05)}
   .ctl.brake.on img{filter:drop-shadow(0 0 12px rgba(255,60,50,.85))}
   .nitrohint{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:#ffd27a;opacity:.85;
     text-shadow:0 0 8px rgba(255,150,40,.6)}
-  .wheelwrap{width:172px;height:172px;display:grid;place-items:center;cursor:grab;margin-right:20px;
+  .wheelwrap{width:188px;height:188px;display:grid;place-items:center;cursor:grab;margin-right:20px;
     touch-action:none;-webkit-tap-highlight-color:transparent}
   .wheelwrap img{width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 16px rgba(0,0,0,.55));will-change:transform}
 
@@ -434,8 +436,8 @@
     .hptxt{font-size:9px}
     .iconbtn{width:34px;height:34px;border-radius:10px;font-size:15px}
     .speedo{padding:2px 9px} .speedo b{font-size:23px} .speedo i{font-size:9px}
-    .ctl img{width:86px;height:86px} .ctl.gas img{width:102px;height:102px}
-    .wheelwrap{width:116px;height:116px}
+    .ctl img{width:98px;height:98px} .ctl.gas img{width:116px;height:116px}
+    .wheelwrap{width:132px;height:132px}
     .nitrohint{font-size:8px}
     .pedstack{gap:5px}
     .drivebar{padding:0 10px calc(env(safe-area-inset-bottom) + 5px)}
@@ -443,8 +445,8 @@
     .vtrack{height:100px;width:14px} .sidebars{gap:10px;right:10px}
   }
   @media (max-height:520px){
-    .ctl img{width:80px;height:80px} .ctl.gas img{width:94px;height:94px}
-    .wheelwrap{width:108px;height:108px}
+    .ctl img{width:92px;height:92px} .ctl.gas img{width:108px;height:108px}
+    .wheelwrap{width:124px;height:124px}
     .pedstack{gap:4px}
     .drivebar{padding:0 12px calc(env(safe-area-inset-bottom) + 4px)}
     .topctrl{top:calc(env(safe-area-inset-top) + 8px)}
@@ -1029,6 +1031,13 @@ document.querySelectorAll('.gate .mp').forEach((panel,idx)=>{
 })();
 
 /* ---------- start AR ---------- */
+function goFullscreen(){ try{
+  const el=document.documentElement;
+  const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.mozRequestFullScreen;
+  const active=document.fullscreenElement||document.webkitFullscreenElement;
+  if(fn && !active){ const r=fn.call(el); if(r&&r.catch) r.catch(()=>{}); }
+}catch(e){} }
+startBtn.addEventListener('click',()=>goFullscreen());
 startBtn.addEventListener('click',startAR);
 async function startAR(){
   if(!navigator.xr || typeof navigator.xr.requestSession!=='function'){
@@ -1218,6 +1227,7 @@ async function placeCar(refMatrixObj){
 
 async function startDriving(){
   if(building) return;
+  goFullscreen();
   if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
   if(shadowGround){ shadowGround.position.set(arenaCenter.x,arenaCenter.y+0.001,arenaCenter.z); shadowGround.visible=true; }
@@ -1233,6 +1243,7 @@ async function startDriving(){
 }
 
 function repark(){
+  goFullscreen();
   carPlaced=false; speed=0; resetControls(); calA=null; if(isMP) resetMatch();
   if(shadowGround) shadowGround.visible=false;
   if(isMP){ calib=null; placeBtn.textContent='Set point A'; }
@@ -1785,7 +1796,7 @@ function driveCar(dt){
   for(const w of allWheels) w.rotation.x+=spin;
   drifting = Math.abs(speed)>0.22 && Math.abs(steerInput)>0.45;
   if(drifting && (markTick++%2===0)){ dropMark(-0.052); dropMark(0.052); }
-  const kmh=Math.round(Math.abs(speed)*400);
+  const kmh=Math.round(Math.abs(speed)*133);   // MAX_SPEED 0.6 -> ~80 km/h
   spdT.textContent=Math.abs(speed).toFixed(1)+' m/s';
   if(speedoT) speedoT.textContent=kmh;
 }
