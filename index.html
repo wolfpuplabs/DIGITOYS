@@ -405,7 +405,7 @@
   .ctl.brake.on img{filter:drop-shadow(0 0 12px rgba(255,60,50,.85))}
   .nitrohint{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:#ffd27a;opacity:.85;
     text-shadow:0 0 8px rgba(255,150,40,.6)}
-  .wheelwrap{width:172px;height:172px;display:grid;place-items:center;cursor:grab;
+  .wheelwrap{width:172px;height:172px;display:grid;place-items:center;cursor:grab;margin-right:20px;
     touch-action:none;-webkit-tap-highlight-color:transparent}
   .wheelwrap img{width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 16px rgba(0,0,0,.55));will-change:transform}
 
@@ -1581,7 +1581,7 @@ function setupControls(){
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>brakeBtn.addEventListener(ev,()=>{ brakeHeld=false; brakeBtn.classList.remove('on'); refresh(); }));
 
   // steering wheel: geser kiri/kanan untuk belok (tahan = belok terus). Lepas -> balik tengah.
-  let startX=0, id=null; const RANGE=64;
+  let startX=0, id=null; const RANGE=48;
   wheelEl.addEventListener('pointerdown',e=>{ wheelDragging=true; id=e.pointerId; try{wheelEl.setPointerCapture(id);}catch(_){}; startX=e.clientX; });
   wheelEl.addEventListener('pointermove',e=>{ if(!wheelDragging||e.pointerId!==id) return;
     steerInput=Math.max(-1,Math.min(1,(e.clientX-startX)/RANGE));
