@@ -69,7 +69,7 @@
     will-change:transform;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .wheel:active{cursor:grabbing}
   .wheel svg{width:86%;height:86%;pointer-events:none}
-  .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 46px);right:14px;display:none;
+  .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 60px);right:14px;display:none;
     align-items:center;gap:8px;pointer-events:auto}
   .board{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:14px;display:none;
     background:var(--panel);border:1px solid var(--stroke);border-radius:12px;backdrop-filter:blur(10px);
@@ -410,7 +410,7 @@
 
   /* ===== responsive HUD: phones / short screens ===== */
   @media (max-width:600px){
-    .topctrl{top:calc(env(safe-area-inset-top) + 38px);right:8px;gap:5px}
+    .topctrl{top:calc(env(safe-area-inset-top) + 54px);right:8px;gap:5px}
     .toprow{gap:6px}
     .gpanel{gap:8px;padding:6px 9px;border-radius:11px}
     .hpbar,.nbar{width:60px;height:13px}
@@ -430,7 +430,7 @@
     .wheelwrap{width:108px;height:108px}
     .pedstack{gap:4px}
     .drivebar{padding:0 12px calc(env(safe-area-inset-bottom) + 6px)}
-    .topctrl{top:calc(env(safe-area-inset-top) + 32px)}
+    .topctrl{top:calc(env(safe-area-inset-top) + 48px)}
     .board{font-size:11px;max-width:34vw}
   }
 </style>
