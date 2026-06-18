@@ -69,8 +69,8 @@
     will-change:transform;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .wheel:active{cursor:grabbing}
   .wheel svg{width:86%;height:86%;pointer-events:none}
-  .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 60px);right:14px;display:none;
-    align-items:center;gap:8px;pointer-events:auto}
+  .topctrl{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:50%;transform:translateX(-50%);display:none;
+    align-items:center;gap:10px;pointer-events:auto;max-width:calc(100vw - 24px)}
   .board{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:14px;display:none;
     background:var(--panel);border:1px solid var(--stroke);border-radius:12px;backdrop-filter:blur(10px);
     padding:8px 10px;min-width:118px;pointer-events:none}
@@ -342,23 +342,24 @@
     border:1px solid rgba(255,255,255,.2)!important;box-shadow:0 8px 24px rgba(0,0,0,.5), inset 0 0 18px rgba(255,107,61,.12)!important}
 
   /* ===== AR HUD v2 (sprite-sheet style) ===== */
-  .topctrl{flex-direction:column;align-items:flex-end;gap:8px}
+  .pushright{margin-left:auto}
+  .topctrl{flex-direction:row;align-items:center;gap:10px}
   .toprow{display:flex;align-items:center;gap:10px}
-  .gpanel{display:flex;gap:14px;padding:9px 14px;border-radius:14px;
+  .gpanel{display:flex;gap:10px;padding:7px 11px;border-radius:13px;
     background:linear-gradient(180deg,#4c545f,#20242b);border:1px solid rgba(255,255,255,.18);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 6px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.5)}
-  .gcol{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
-  .grow{display:flex;align-items:center;gap:6px}
-  .gicon{font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
-  .glab{font-family:var(--display);font-size:10px;letter-spacing:.12em;margin-left:2px}
+  .gcol{display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+  .grow{display:flex;align-items:center;gap:5px}
+  .gicon{font-size:13px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+  .glab{font-family:var(--display);font-size:9px;letter-spacing:.1em;margin-left:1px}
   .glab.fuel{color:#7df5a0} .glab.nit{color:#5fd0ff}
-  .hpbar{width:108px;height:16px} .nbar{width:108px;height:16px}
+  .hpbar{width:84px;height:14px} .nbar{width:84px;height:14px}
   .hpbar,.nbar{border-radius:8px;border:1px solid rgba(0,0,0,.5);
     background:linear-gradient(180deg,#0a0d12,#11151b);box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
   .ntxt{display:none}
   .speedo{display:flex;align-items:baseline;gap:6px;padding:4px 14px;border-radius:12px;
     background:linear-gradient(180deg,rgba(20,24,30,.75),rgba(8,10,14,.8));border:1px solid rgba(255,255,255,.12)}
-  .speedo b{font-family:var(--display);font-size:34px;line-height:1;color:#fff;
+  .speedo b{font-family:var(--display);font-size:26px;line-height:1;color:#fff;
     text-shadow:0 0 12px rgba(35,227,255,.5);font-variant-numeric:tabular-nums}
   .speedo i{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#9fb0c2}
 
@@ -410,7 +411,7 @@
 
   /* ===== responsive HUD: phones / short screens ===== */
   @media (max-width:600px){
-    .topctrl{top:calc(env(safe-area-inset-top) + 54px);right:8px;gap:5px}
+    .topctrl{top:calc(env(safe-area-inset-top) + 44px);gap:7px}
     .toprow{gap:6px}
     .gpanel{gap:8px;padding:6px 9px;border-radius:11px}
     .hpbar,.nbar{width:60px;height:13px}
@@ -430,7 +431,7 @@
     .wheelwrap{width:108px;height:108px}
     .pedstack{gap:4px}
     .drivebar{padding:0 12px calc(env(safe-area-inset-bottom) + 4px)}
-    .topctrl{top:calc(env(safe-area-inset-top) + 48px)}
+    .topctrl{top:calc(env(safe-area-inset-top) + 8px)}
     .board{font-size:11px;max-width:34vw}
   }
 </style>
@@ -548,7 +549,9 @@
     <span class="dot searching" id="dot"></span>
     <span id="status">Looking for a surface…</span>
     <span class="players" id="players"></span>
-    <span class="spd" id="spd">0.0 m/s</span>
+    <span class="spd" id="spd"></span>
+    <button class="sysbtn pushright" id="mute" title="Sound">🔊</button>
+    <button class="sysbtn" id="repark" title="Re-place car">↺</button>
     <button class="sysbtn" id="reload" title="Reload">⟳</button>
     <button class="sysbtn" id="exit" title="Exit AR">✕</button>
   </div>
@@ -568,21 +571,17 @@
   </div>
 
   <div class="topctrl" id="topctrl">
-    <div class="toprow">
-      <div class="gpanel">
-        <div class="gcol">
-          <div class="grow"><span class="gicon fuel">⛽</span>
-            <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div></div>
-          <div class="glab fuel">FUEL</div>
-        </div>
-        <div class="gcol">
-          <div class="grow"><span class="gicon nit">🔥</span>
-            <div class="nbar" id="nbar"><div class="nfill" id="nfill"></div></div></div>
-          <div class="glab nit">NITRO</div>
-        </div>
+    <div class="gpanel">
+      <div class="gcol">
+        <div class="grow"><span class="gicon fuel">⛽</span>
+          <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div></div>
+        <div class="glab fuel">FUEL</div>
       </div>
-      <button class="iconbtn" id="mute">🔊</button>
-      <button class="iconbtn" id="repark">↺</button>
+      <div class="gcol">
+        <div class="grow"><span class="gicon nit">🔥</span>
+          <div class="nbar" id="nbar"><div class="nfill" id="nfill"></div></div></div>
+        <div class="glab nit">NITRO</div>
+      </div>
     </div>
     <div class="speedo"><b id="speedoNum">0</b><i>km/h</i></div>
   </div>
