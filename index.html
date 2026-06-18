@@ -409,6 +409,20 @@
     touch-action:none;-webkit-tap-highlight-color:transparent}
   .wheelwrap img{width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 16px rgba(0,0,0,.55));will-change:transform}
 
+  /* right-side vertical FUEL / NITRO bars */
+  .sidebars{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:none;
+    flex-direction:row;gap:14px;pointer-events:none;z-index:5}
+  .vbar{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .vtop{font-family:var(--mono);font-size:11px;color:#cfe9ff;min-height:13px;line-height:1;
+    text-shadow:0 0 6px rgba(35,227,255,.5)}
+  .vtrack{position:relative;width:16px;height:122px;border-radius:9px;overflow:hidden;
+    background:linear-gradient(180deg,#0a0d12,#11151b);border:1px solid rgba(255,255,255,.22);
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.6),0 3px 10px rgba(0,0,0,.4)}
+  .vfill{position:absolute;left:0;right:0;bottom:0;height:100%;transition:height .15s}
+  .vfill.fuel{background:linear-gradient(0deg,#16d39a,#9be86f)}
+  .vfill.nitro{background:linear-gradient(0deg,#16a8d8,#7fe6ff)}
+  .vlab{font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+
   /* ===== responsive HUD: phones / short screens ===== */
   @media (max-width:600px){
     .topctrl{top:calc(env(safe-area-inset-top) + 44px);gap:7px}
@@ -425,6 +439,7 @@
     .pedstack{gap:5px}
     .drivebar{padding:0 10px calc(env(safe-area-inset-bottom) + 5px)}
     .board{font-size:12px;max-width:42vw;padding:8px 10px!important}
+    .vtrack{height:100px;width:14px} .sidebars{gap:10px;right:10px}
   }
   @media (max-height:520px){
     .ctl img{width:80px;height:80px} .ctl.gas img{width:94px;height:94px}
@@ -433,6 +448,7 @@
     .drivebar{padding:0 12px calc(env(safe-area-inset-bottom) + 4px)}
     .topctrl{top:calc(env(safe-area-inset-top) + 8px)}
     .board{font-size:11px;max-width:34vw}
+    .vtrack{height:84px}
   }
 </style>
 </head>
@@ -571,19 +587,20 @@
   </div>
 
   <div class="topctrl" id="topctrl">
-    <div class="gpanel">
-      <div class="gcol">
-        <div class="grow"><span class="gicon fuel">⛽</span>
-          <div class="hpbar" id="hpbar"><div class="hpfill" id="hpfill"></div><span class="hptxt" id="hptxt">100</span></div></div>
-        <div class="glab fuel">FUEL</div>
-      </div>
-      <div class="gcol">
-        <div class="grow"><span class="gicon nit">🔥</span>
-          <div class="nbar" id="nbar"><div class="nfill" id="nfill"></div></div></div>
-        <div class="glab nit">NITRO</div>
-      </div>
-    </div>
     <div class="speedo"><b id="speedoNum">0</b><i>km/h</i></div>
+  </div>
+
+  <div class="sidebars" id="sidebars">
+    <div class="vbar">
+      <span class="vtop" id="hptxt">100</span>
+      <div class="vtrack"><div class="vfill fuel" id="hpfill"></div></div>
+      <span class="vlab">⛽</span>
+    </div>
+    <div class="vbar">
+      <span class="vtop">&nbsp;</span>
+      <div class="vtrack"><div class="vfill nitro" id="nfill"></div></div>
+      <span class="vlab">🔥</span>
+    </div>
   </div>
 
   <div class="drivebar" id="drivebar">
@@ -622,7 +639,7 @@ const SERVER_URL = null;
 const $=id=>document.getElementById(id);
 const gate=$('gate'),hud=$('hud'),startBtn=$('start'),errBox=$('err');
 const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('players'),speedoT=$('speedoNum');
-const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl');
+const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl'),sidebars=$('sidebars');
 const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),wheelImg=$('wheelimg'),muteBtn=$('mute'),reparkBtn=$('repark'),nfill=$('nfill');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
 const reloadBtn=$('reload'),exitBtn=$('exit');
@@ -1037,7 +1054,7 @@ async function startAR(){
     if(netTimer){clearInterval(netTimer);netTimer=null;}
     carPlaced=false; dead=false; calA=null; if(isMP) calib=null;
     if(car) car.visible=false; clearWorld();
-    drivebar.style.display='none'; topctrl.style.display='none'; board.style.display='none';
+    drivebar.style.display='none'; topctrl.style.display='none'; sidebars.style.display='none'; board.style.display='none';
     bottomwrap.style.display='flex'; placeBtn.disabled=true;
     placeBtn.textContent= isMP?'Set point A':'Place car';
     dot.className='dot searching'; statusT.textContent='Looking for a surface…';
@@ -1204,7 +1221,7 @@ async function startDriving(){
   if(shadowGround){ shadowGround.position.set(arenaCenter.x,arenaCenter.y+0.001,arenaCenter.z); shadowGround.visible=true; }
   if(keyLight){ keyLight.position.set(arenaCenter.x+0.6,arenaCenter.y+1.4,arenaCenter.z+0.5); keyLight.target.position.copy(arenaCenter); keyLight.target.updateMatrixWorld(); }
   ownHP=100; dead=false; eliminated=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
-  topctrl.style.display='flex';                       // HP + nitro tampil di solo & MP
+  topctrl.style.display='flex'; sidebars.style.display='flex';     // km/h + FUEL/NITRO tampil
   buildArena(); placeArenaModel(); spawnObstacles(); spawnPowerups();
   if(!isMP && botCount>0) await spawnBots();           // bot lawan (solo)
   if(inMatch()){ if(!car.userData.label){ addUnderGlow(car,0xff6b3d); addLabel(car, myName); } resetMatch(); }
@@ -1218,7 +1235,7 @@ function repark(){
   if(shadowGround) shadowGround.visible=false;
   if(isMP){ calib=null; placeBtn.textContent='Set point A'; }
   if(car)car.visible=false; clearWorld();
-  drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; board.style.display='none';
+  drivebar.style.display='none'; bottomwrap.style.display='flex'; topctrl.style.display='none'; sidebars.style.display='none'; board.style.display='none';
   dot.className='dot searching'; statusT.textContent='Looking for a surface…';
   hint.textContent= isMP?'Recalibrate: tap point A together':'Move your phone, then place again';
   hint.classList.remove('hide');
@@ -1354,7 +1371,7 @@ function addUnderGlow(group,color){
 }
 
 /* ---------- health (server-authoritative; client only displays) ---------- */
-function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.width=h+'%'; hptxt.textContent=h; }
+function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.height=h+'%'; hptxt.textContent=h; }
 function enterDead(){ dead=true; speed=0; statusT.textContent='Wrecked! Respawning…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
 function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Race'; }
 // local combat (dipakai di mode P2P gratis; di mode WS damage diatur server)
@@ -1581,7 +1598,7 @@ function setupControls(){
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>brakeBtn.addEventListener(ev,()=>{ brakeHeld=false; brakeBtn.classList.remove('on'); refresh(); }));
 
   // steering wheel: geser kiri/kanan untuk belok (tahan = belok terus). Lepas -> balik tengah.
-  let startX=0, id=null; const RANGE=48;
+  let startX=0, id=null; const RANGE=40;
   wheelEl.addEventListener('pointerdown',e=>{ wheelDragging=true; id=e.pointerId; try{wheelEl.setPointerCapture(id);}catch(_){}; startX=e.clientX; });
   wheelEl.addEventListener('pointermove',e=>{ if(!wheelDragging||e.pointerId!==id) return;
     steerInput=Math.max(-1,Math.min(1,(e.clientX-startX)/RANGE));
@@ -1590,7 +1607,7 @@ function setupControls(){
   wheelEl.addEventListener('pointerup',release); wheelEl.addEventListener('pointercancel',release);
 }
 function applyWheelSide(){ drivebar.classList.toggle('lefty', wheelSide==='left'); }
-function updateNitroBar(){ const n=Math.max(0,Math.round(nitro)); nfill.style.width=n+'%'; }
+function updateNitroBar(){ const n=Math.max(0,Math.round(nitro)); nfill.style.height=n+'%'; }
 function updateWheel(dt){
   if(!wheelDragging){ wheelAngle += (0-wheelAngle)*Math.min(1,dt*10); if(Math.abs(wheelAngle)<0.5) wheelAngle=0;
     steerInput=wheelAngle/WHEEL_MAX; }
