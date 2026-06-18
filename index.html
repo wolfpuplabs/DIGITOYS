@@ -407,6 +407,32 @@
   .wheelwrap{width:172px;height:172px;display:grid;place-items:center;cursor:grab;
     touch-action:none;-webkit-tap-highlight-color:transparent}
   .wheelwrap img{width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 8px 16px rgba(0,0,0,.55));will-change:transform}
+
+  /* ===== responsive HUD: phones / short screens ===== */
+  @media (max-width:600px){
+    .topctrl{top:calc(env(safe-area-inset-top) + 38px);right:8px;gap:5px}
+    .toprow{gap:6px}
+    .gpanel{gap:8px;padding:6px 9px;border-radius:11px}
+    .hpbar,.nbar{width:60px;height:13px}
+    .gicon{font-size:12px} .glab{font-size:8px;letter-spacing:.08em}
+    .hptxt{font-size:9px}
+    .iconbtn{width:34px;height:34px;border-radius:10px;font-size:15px}
+    .speedo{padding:2px 9px} .speedo b{font-size:23px} .speedo i{font-size:9px}
+    .ctl img{width:86px;height:86px} .ctl.gas img{width:102px;height:102px}
+    .wheelwrap{width:116px;height:116px}
+    .nitrohint{font-size:8px}
+    .pedstack{gap:6px}
+    .drivebar{padding:0 10px calc(env(safe-area-inset-bottom) + 10px)}
+    .board{font-size:12px;max-width:42vw;padding:8px 10px!important}
+  }
+  @media (max-height:520px){
+    .ctl img{width:80px;height:80px} .ctl.gas img{width:94px;height:94px}
+    .wheelwrap{width:108px;height:108px}
+    .pedstack{gap:4px}
+    .drivebar{padding:0 12px calc(env(safe-area-inset-bottom) + 6px)}
+    .topctrl{top:calc(env(safe-area-inset-top) + 32px)}
+    .board{font-size:11px;max-width:34vw}
+  }
 </style>
 </head>
 <body>
