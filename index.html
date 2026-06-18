@@ -704,7 +704,7 @@ handBtns.forEach(b=>b.addEventListener('click',()=>{ wheelSide=b.dataset.hand;
 const PUPS=[
   {id:'brown',url:'rc-car.glb',   name:'Brown', rot:0,        sw:'linear-gradient(135deg,#a06a3a,#5b3a1e)'},
   {id:'white',url:'pup-white.glb',name:'White', rot:Math.PI,  sw:'linear-gradient(135deg,#f4f4f2,#c6cacf)'},
-  {id:'black',url:'pup-black.glb',name:'Black', rot:Math.PI,  sw:'linear-gradient(135deg,#52535a,#16171b)'},
+  {id:'black',url:'pup-black.glb',name:'Black', rot:0,        sw:'linear-gradient(135deg,#52535a,#16171b)'},
 ];
 let selectedPup='brown';
 const pupCache={};                 // url -> fitted template (loaded once, cloned per car)
