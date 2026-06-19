@@ -738,6 +738,7 @@ const CAR_COLORS=[{n:'Orange',c:0xff6b3d},{n:'Cyan',c:0x23e3ff},{n:'Magenta',c:0
 let myCarColor=0xff6b3d;
 const ROUND_TARGET=3, SCORE_TARGET=8;
 let eliminated=false, roundResolving=false, matchOver=false, roundPlayers=0;
+let roundTimer=null;   // timer auto lanjut ronde (biar bisa dibatalkan saat Play again)
 const wins={};             // id -> round wins
 const bots=[]; let botCount=0;            // AI lawan (mode solo)
 const BOT_MAXSPD=0.52, BOT_TURN=2.3;
@@ -765,7 +766,7 @@ modeBtns.forEach(b=>b.addEventListener('click',()=>{
   if(b.dataset.mode===gameMode) return;
   gameMode=b.dataset.mode; reflectMode();
 }));
-resAgain.addEventListener('click',()=>{ resetMatch(); resetRound(); });
+resAgain.addEventListener('click',()=>{ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} resetMatch(); resetRound(); });
 botBtns.forEach(b=>b.addEventListener('click',()=>{
   botCount=+b.dataset.bots; botBtns.forEach(x=>x.classList.toggle('on',x===b));
 }));
@@ -1074,7 +1075,7 @@ glbfile.addEventListener('change',async e=>{
     const lbl=s.querySelector('.lbl');
     lbl.addEventListener('click',()=>{ if(s.classList.contains('open')) s.classList.remove('open'); else openSec(s); });
   });
-  openSec(soloSec);   // default: SOLO terbuka
+  // default: SEMUA dropdown tertutup. Setelan bersama nyusul ke section pertama yang dibuka.
 })();
 
 /* ---------- fullscreen button (dedicated gesture, never mixed with requestSession) ---------- */
@@ -1457,7 +1458,7 @@ function handleKO(){                            // HP habis (survival/deathmatch
 
 /* ---------- match: survival / deathmatch / sumo ---------- */
 function inRingShared(t){ return t && arenaInside(t.x,t.z); }
-function resetMatch(){ matchOver=false; roundResolving=false; roundPlayers=0; eliminated=false;
+function resetMatch(){ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} matchOver=false; roundResolving=false; roundPlayers=0; eliminated=false;
   for(const k in wins) delete wins[k]; renderBoardP2P(); hideResult(); }
 function resetRound(){
   eliminated=false; dead=false; ownHP=100; nitro=100; shieldUntil=0; speed=0; throttleInput=0;
@@ -1495,7 +1496,7 @@ function updateMatch(){
     const winner = active.length===1 ? active[0] : null;     // null = seri
     if(winner){ wins[winner]=(wins[winner]||0)+1; renderBoardP2P(); }
     if(winner && wins[winner]>=ROUND_TARGET){ endMatch(winner); }
-    else { showRoundResult(winner); setTimeout(()=>{ if(carPlaced&&!matchOver) resetRound(); }, 4200); }
+    else { showRoundResult(winner); roundTimer=setTimeout(()=>{ if(carPlaced&&!matchOver) resetRound(); }, 4200); }
   }
 }
 function nameOf(id){ if(id===myId) return myName; if(boardData[id]) return boardData[id].n; const b=bots.find(x=>x.id===id); return b?b.name:'Rival'; }
@@ -1511,12 +1512,12 @@ function endMatch(winnerId){
   const you=winnerId===myId;
   showResult(you?'🏆 YOU WIN!':'🏆 '+nameOf(winnerId)+' wins!', 'champ',
     gameMode==='deathmatch'?'Deathmatch over':'Match over', true);
-  setTimeout(()=>{ if(carPlaced && matchOver){ resetMatch(); resetRound(); } }, 7000);
+  // tetap di layar game-over; pemain tekan "Play again" untuk mulai lagi
 }
 function showResult(title,cls,sub,champ){
   resBig.textContent=title; resBig.className='big '+(cls||'');
   resSub.textContent=sub||''; resCd.textContent='';
-  resAgain.style.display = champ?'inline-block':'none';
+  resAgain.style.display='inline-block';   // selalu ada opsi Play again di tiap game-over
   resultEl.classList.add('show');
 }
 function hideResult(){ resultEl.classList.remove('show'); resCd.textContent=''; }
