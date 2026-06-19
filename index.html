@@ -598,7 +598,7 @@
     <span class="spd" id="spd"></span>
     <button class="sysbtn pushright" id="mute" title="Sound">🔊</button>
     <button class="sysbtn" id="repark" title="Re-place car">↺</button>
-    <button class="sysbtn" id="reload" title="Reload">⟳</button>
+    <button class="sysbtn fsact" id="fsbtn2" title="Fullscreen">⛶</button>
     <button class="sysbtn" id="exit" title="Exit AR">✕</button>
   </div>
   <div class="hint" id="hint">Move your phone to scan</div>
@@ -673,7 +673,7 @@ const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl'),sidebars=$('sidebars');
 const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),wheelImg=$('wheelimg'),muteBtn=$('mute'),reparkBtn=$('repark'),nfill=$('nfill');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
-const reloadBtn=$('reload'),exitBtn=$('exit');
+const exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
 const modeBtns=[...document.querySelectorAll('.modebtn[data-mode]')], moderule=$('moderule');
 const botBtns=[...document.querySelectorAll('.modebtn[data-bots]')];
@@ -1132,7 +1132,7 @@ async function startAR(){
   renderer.setAnimationLoop(render);
 }
 
-reloadBtn.addEventListener('click',()=>location.reload());
+/* in-game ⛶ fullscreen button auto-wired via .fsact */
 exitBtn.addEventListener('click',()=>{ if(xrSession) xrSession.end(); });
 
 function initThree(){
