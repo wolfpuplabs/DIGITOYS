@@ -141,14 +141,17 @@
     border-radius:12px !important;opacity:.55;transition:opacity .12s,border-color .12s}
   .modebtn.on{opacity:1;border-color:var(--lock) !important;background:rgba(52,224,196,.12) !important;color:var(--ink) !important}
   .result{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;
-    gap:10px;text-align:center;background:rgba(6,8,11,.72);backdrop-filter:blur(6px);padding:24px}
+    gap:10px;text-align:center;background:rgba(6,8,11,.72);backdrop-filter:blur(6px);padding:24px;pointer-events:auto}
+  .result .btnrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center}
   .result.show{display:flex}
   .result .big{font-family:var(--sans);font-weight:800;font-size:34px;letter-spacing:-.02em;color:var(--signal)}
   .result .big.win{color:var(--lock)} .result .big.champ{color:#ffd24a}
   .result .sub{font-family:var(--mono);font-size:13px;color:var(--muted)}
   .result .cd{font-family:var(--mono);font-size:12px;color:var(--ink);opacity:.7;margin-top:6px}
-  .result .again{margin-top:14px;height:46px;padding:0 22px;border-radius:14px;border:none;
-    background:var(--lock);color:#04201b;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;display:none}
+  .result .again{margin-top:0;height:46px;padding:0 22px;border-radius:14px;border:none;
+    background:var(--lock);color:#04201b;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;pointer-events:auto}
+  .result .home{margin-top:0;height:46px;padding:0 22px;border-radius:14px;border:1px solid var(--stroke);
+    background:rgba(255,255,255,.06);color:var(--ink);font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;pointer-events:auto}
   .err{display:none;margin-top:18px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,107,74,.4);
     background:rgba(255,107,74,.08);color:#ffb9a8;font-size:13px;line-height:1.5}
   .err b{color:var(--signal)}
@@ -609,7 +612,10 @@
     <div class="big" id="resbig">—</div>
     <div class="sub" id="ressub"></div>
     <div class="cd" id="rescd"></div>
-    <button class="again" id="resagain">Play again</button>
+    <div class="btnrow">
+      <button class="again" id="resagain">Play again</button>
+      <button class="home" id="reshome">🏠 Back to home</button>
+    </div>
   </div>
 
   <div class="bottomwrap" id="bottomwrap">
@@ -677,7 +683,11 @@ const exitBtn=$('exit');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
 const modeBtns=[...document.querySelectorAll('.modebtn[data-mode]')], moderule=$('moderule');
 const botBtns=[...document.querySelectorAll('.modebtn[data-bots]')];
-const resultEl=$('result'),resBig=$('resbig'),resSub=$('ressub'),resCd=$('rescd'),resAgain=$('resagain');
+const resultEl=$('result'),resBig=$('resbig'),resSub=$('ressub'),resCd=$('rescd'),resAgain=$('resagain'),resHome=$('reshome');
+/* WebXR Viewer (iOS) sering tak meneruskan event 'click' ke dom-overlay; dengarkan juga 'pointerup' (dedup) */
+function onTap(el,fn){ if(!el) return; let t=0;
+  const h=e=>{ const n=Date.now(); if(n-t<450) return; t=n; fn(e); };
+  el.addEventListener('click',h); el.addEventListener('pointerup',h); }
 
 let renderer,scene,camera,reticle,controller,xrSession=null;
 let keyLight=null,shadowGround=null;
@@ -766,7 +776,8 @@ modeBtns.forEach(b=>b.addEventListener('click',()=>{
   if(b.dataset.mode===gameMode) return;
   gameMode=b.dataset.mode; reflectMode();
 }));
-resAgain.addEventListener('click',()=>{ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} resetMatch(); resetRound(); });
+onTap(resAgain,()=>{ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} resetMatch(); resetRound(); });
+onTap(resHome,()=>{ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} hideResult(); if(xrSession) xrSession.end(); });
 botBtns.forEach(b=>b.addEventListener('click',()=>{
   botCount=+b.dataset.bots; botBtns.forEach(x=>x.classList.toggle('on',x===b));
 }));
@@ -1086,7 +1097,7 @@ function goFullscreen(){ try{
   if(active){ const ex=document.exitFullscreen||document.webkitExitFullscreen; if(ex){ const r=ex.call(document); if(r&&r.catch) r.catch(()=>{});} return; }
   if(fn){ const r=fn.call(el); if(r&&r.catch) r.catch(()=>{}); }
 }catch(e){} }
-document.querySelectorAll('.fsact').forEach(b=> b.addEventListener('click',goFullscreen));
+document.querySelectorAll('.fsact').forEach(b=> onTap(b,goFullscreen));
 
 // gate jadi: [area scroll] + [footer START] -> START selalu kelihatan, konten scroll di atasnya (fix landscape)
 (function(){ const g=$('gate'), st=$('start'); if(!g||!st) return;
@@ -1133,7 +1144,7 @@ async function startAR(){
 }
 
 /* in-game ⛶ fullscreen button auto-wired via .fsact */
-exitBtn.addEventListener('click',()=>{ if(xrSession) xrSession.end(); });
+onTap(exitBtn,()=>{ if(xrSession) xrSession.end(); });
 
 function initThree(){
   if(renderer) return;
@@ -1165,8 +1176,8 @@ function initThree(){
   markGeo=new THREE.PlaneGeometry(0.02,0.02);
   markMat=new THREE.MeshBasicMaterial({color:0x111316,transparent:true,opacity:.32,depthWrite:false});
   placeBtn.addEventListener('click',onPrimary);
-  reparkBtn.addEventListener('click',repark);
-  muteBtn.addEventListener('click',toggleMute);
+  onTap(reparkBtn,repark);
+  onTap(muteBtn,toggleMute);
   setupControls();
   initParticles();
   addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
