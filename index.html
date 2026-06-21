@@ -5,9 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="KART CRASH" />
+<meta name="theme-color" content="#0b0d12" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-180.png" />
 <title>KART CRASH · AR Kart Battle · Wolfpup Labs</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+  @font-face{font-family:'Russo One';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/russo-one-latin-400-normal.woff2') format('woff2')}
+  @font-face{font-family:'Rajdhani';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/rajdhani-latin-400-normal.woff2') format('woff2')}
+  @font-face{font-family:'Rajdhani';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/rajdhani-latin-500-normal.woff2') format('woff2')}
+  @font-face{font-family:'Rajdhani';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/rajdhani-latin-600-normal.woff2') format('woff2')}
+  @font-face{font-family:'Rajdhani';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/rajdhani-latin-700-normal.woff2') format('woff2')}
+  @font-face{font-family:'Space Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/space-mono-latin-400-normal.woff2') format('woff2')}
+  @font-face{font-family:'Space Mono';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/space-mono-latin-700-normal.woff2') format('woff2')}
   :root{
     --bg:#090a0f;--panel:rgba(18,21,30,.74);--stroke:rgba(255,255,255,.14);
     --ink:#f3f5fa;--muted:#8b93a6;--signal:#ff5a2e;--lock:#23e3ff;
@@ -44,6 +55,10 @@
     background:var(--panel);border:1px solid var(--stroke);padding:9px 16px;border-radius:999px;
     backdrop-filter:blur(12px);transition:opacity .3s;max-width:80vw}
   .hint.hide{opacity:0}
+  #flaghud{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 56px);transform:translateX(-50%);
+    font-family:var(--display);font-size:17px;letter-spacing:.04em;color:#fff7df;white-space:nowrap;
+    background:rgba(16,12,4,.55);border:1.5px solid #ffd24a;border-radius:999px;padding:7px 18px;
+    box-shadow:0 0 14px rgba(255,210,74,.7),inset 0 0 10px rgba(255,210,74,.25);backdrop-filter:blur(8px);z-index:30}
   .bottomwrap{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:10px;
     padding:0 16px calc(env(safe-area-inset-bottom) + 24px);pointer-events:auto}
   .place{height:56px;padding:0 26px;border:none;border-radius:16px;background:var(--signal);
@@ -517,9 +532,16 @@
         <button class="modebtn" data-mode="freeroam"><span class="mi">🛣️</span>Free Roam</button>
       </div>
       <div class="st" id="moderule">Last car standing — lose the round when HP hits 0. First to 3 wins.</div>
+      <div class="seg" id="collectSeg" style="display:none">
+        <button data-collect="off" class="on">🚗 Free drive</button>
+        <button data-collect="on">🚩 Collect 10</button>
+      </div>
     </div>
     <div class="mpsub" id="arenaWrap">
-      <div class="sublbl">Arena</div>
+      <div class="sublbl">Arena preset</div>
+      <div class="carsel" id="arenasel"></div>
+      <div class="st" id="arenaPreSt">Default = procedural (use Track below). Pup = pre-built course.</div>
+      <div class="sublbl" style="margin-top:14px">Arena size &amp; shape</div>
       <div class="row">
         <input id="arenaRange" type="range" min="0.7" max="2.2" step="0.05" value="1.1" />
         <span class="val" id="arenaVal">Ø 2.2 m</span>
@@ -536,7 +558,12 @@
         <input id="arenaglb" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" hidden />
         <button id="arenaglbClear">Clear</button>
       </div>
-      <div class="st" id="arenaSt">Slide to resize. Builder: place cones & save an arena code to share.</div>
+      <div class="st" id="arenaSt">Slide to resize. Builder: place bumpers & save an arena code to share.</div>
+    </div>
+    <div class="mpsub" id="trackWrap">
+      <div class="sublbl">Track</div>
+      <div class="modes" id="tracksel"></div>
+      <div class="st">Pick a track layout. In multiplayer, both players should pick the same track.</div>
     </div>
     <div class="mpsub" id="carWrap">
       <div class="sublbl">Select car</div>
@@ -576,7 +603,7 @@
 
 <div class="builder" id="builder">
   <h2>Arena Builder</h2>
-  <div class="hintline">Tap canvas = add cone · tap cone = delete · drag cone = move. Save the code to share it.</div>
+  <div class="hintline">Tap canvas = add bumper · tap = delete · drag = move. Save the code to share it.</div>
   <canvas id="bcanvas"></canvas>
   <div class="brow">
     <button id="bClear">Clear</button>
@@ -601,10 +628,11 @@
     <span class="spd" id="spd"></span>
     <button class="sysbtn pushright" id="mute" title="Sound">🔊</button>
     <button class="sysbtn" id="repark" title="Re-place car">↺</button>
-    <button class="sysbtn fsact" id="fsbtn2" title="Fullscreen">⛶</button>
+    <button class="sysbtn" id="homebtn" title="Back to home">🏠</button>
     <button class="sysbtn" id="exit" title="Exit AR">✕</button>
   </div>
   <div class="hint" id="hint">Move your phone to scan</div>
+  <div id="flaghud" style="display:none"></div>
 
   <div class="board" id="board"></div>
 
@@ -650,11 +678,11 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="vendor/peerjs.min.js"></script>
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/addons/"
 }}
 </script>
 
@@ -679,7 +707,7 @@ const dot=$('dot'),statusT=$('status'),spdT=$('spd'),hint=$('hint'),playersT=$('
 const bottomwrap=$('bottomwrap'),placeBtn=$('place'),drivebar=$('drivebar'),topctrl=$('topctrl'),sidebars=$('sidebars');
 const gasBtn=$('gas'),brakeBtn=$('brake'),wheelEl=$('wheel'),wheelImg=$('wheelimg'),muteBtn=$('mute'),reparkBtn=$('repark'),nfill=$('nfill');
 const hpfill=$('hpfill'),hptxt=$('hptxt'),glbfile=$('glbfile'),upst=$('upst'),board=$('board');
-const exitBtn=$('exit');
+const exitBtn=$('exit'), homeBtn=$('homebtn');
 const roomIn=$('room'),connectBtn=$('connect'),mpst=$('mpst'),nameIn=$('pname');
 const modeBtns=[...document.querySelectorAll('.modebtn[data-mode]')], moderule=$('moderule');
 const botBtns=[...document.querySelectorAll('.modebtn[data-bots]')];
@@ -697,6 +725,11 @@ const clock=new THREE.Clock();
 
 let speed=0,heading=0,steerInput=0,throttleInput=0,boost=1,drifting=false;
 const MAX_SPEED=0.6,MAX_REV=0.4,ACCEL=2.2,STEER_MAX=0.55,TURN_RATE=2.6,WHEEL_R=0.022,CAR_R=0.09;
+const SPAWN_CLEAR_OBS=0.30, SPAWN_CLEAR_RAMP=0.45;   // zona bebas di titik spawn (tengah) biar mobil ga kejebak
+/* jump / ramp physics */
+let carY=0, vy=0, airborne=false, onRamp=false, carPitch=0, lastRampAng=0.5, flameTick=0;
+const GRAV=2.6, RAMP_LAUNCH=0.8;
+const ramps=[], flashes=[];
 
 // health / combat
 let ownHP=100, dead=false, lastHitT=0, lastDmgT=0, lastSparkT=0;
@@ -776,6 +809,12 @@ modeBtns.forEach(b=>b.addEventListener('click',()=>{
   if(b.dataset.mode===gameMode) return;
   gameMode=b.dataset.mode; reflectMode();
 }));
+let flagMissionOn=false;
+const collectSeg=$('collectSeg');
+[...collectSeg.children].forEach(b=>b.addEventListener('click',()=>{
+  flagMissionOn = b.dataset.collect==='on';
+  [...collectSeg.children].forEach(x=>x.classList.toggle('on',x===b));
+}));
 onTap(resAgain,()=>{ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} resetMatch(); resetRound(); });
 onTap(resHome,()=>{ if(roundTimer){clearTimeout(roundTimer);roundTimer=null;} hideResult(); if(xrSession) xrSession.end(); });
 botBtns.forEach(b=>b.addEventListener('click',()=>{
@@ -806,9 +845,28 @@ PUPS.forEach((p,i)=>{ const b=document.createElement('button'); b.className='car
   b.addEventListener('click',()=>{ selectedPup=p.id; selCar(b); });
   carselEl.appendChild(b);
 });
+
+/* ---------- predefined tracks (pilih layout kayak milih mobil) ---------- */
+const TRACKS=[{id:'oval',name:'⭕ Oval'},{id:'slalom',name:'➰ Slalom'},{id:'cross',name:'✚ Cross'},{id:'random',name:'🎲 Random'}];
+let selectedTrack='oval';
+const tracksel=$('tracksel');
+TRACKS.forEach(t=>{ const b=document.createElement('button'); b.className='modebtn'+(t.id===selectedTrack?' on':''); b.dataset.track=t.id; b.textContent=t.name;
+  b.addEventListener('click',()=>{ selectedTrack=t.id; [...tracksel.children].forEach(x=>x.classList.toggle('on',x===b)); });
+  tracksel.appendChild(b); });
+function trackLayout(R){    // -> {obs:[{x,z,kind}], ramps:[{x,z,dir}]} relatif ke pusat arena (meter); null = random
+  if(selectedTrack==='oval'){ const obs=[],n=10; for(let i=0;i<n;i++){ const a=i/n*Math.PI*2; obs.push({x:Math.cos(a)*R*0.82,z:Math.sin(a)*R*0.55,kind:i%3===0?'barrel':'tire'}); }
+    return {obs, ramps:[{x:0,z:R*0.6,dir:Math.PI},{x:0,z:-R*0.6,dir:0}]}; }
+  if(selectedTrack==='slalom'){ const obs=[]; for(let i=0;i<6;i++){ const z=(-0.72+i*0.29)*R, x=(i%2?0.38:-0.38)*R; obs.push({x,z,kind:i%2?'barrel':'tire'}); }
+    return {obs, ramps:[{x:0,z:R*0.85,dir:Math.PI}]}; }
+  if(selectedTrack==='cross'){ const obs=[],ring=8; for(let i=0;i<ring;i++){ const a=i/ring*Math.PI*2; obs.push({x:Math.cos(a)*R*0.72,z:Math.sin(a)*R*0.72,kind:i%2?'tire':'barrel'}); }
+    obs.push({x:0,z:0,kind:'barrel'});
+    return {obs, ramps:[{x:R*0.42,z:0,dir:Math.PI/2},{x:-R*0.42,z:0,dir:-Math.PI/2}]}; }
+  return null;
+}
 function reflectMode(){
   modeBtns.forEach(x=>x.classList.toggle('on',x.dataset.mode===gameMode));
   moderule.textContent=MODE_RULE[gameMode];
+  const cs=$('collectSeg'); if(cs) cs.style.display = gameMode==='freeroam' ? 'flex' : 'none';
 }
 
 /* ---------- arena size / shape / builder ---------- */
@@ -819,11 +877,33 @@ function reflectArena(){
   arenaRange.value=ARENA_RADIUS;
   arenaVal.textContent='Ø '+(ARENA_RADIUS*2).toFixed(1)+' m';
   [...shapeSeg.children].forEach(b=>b.classList.toggle('on',b.dataset.shape===arenaShape));
-  arenaSt.textContent = customCones&&customCones.length ? ('Arena custom · '+customCones.length+' cones · Ø '+(ARENA_RADIUS*2).toFixed(1)+' m')
-    : 'Slide to resize. Builder: place cones & save an arena code to share.';
+  arenaSt.textContent = customCones&&customCones.length ? ('Arena custom · '+customCones.length+' bumpers · Ø '+(ARENA_RADIUS*2).toFixed(1)+' m')
+    : 'Slide to resize. Builder: place bumpers & save an arena code to share.';
 }
 arenaRange.addEventListener('input',()=>{ ARENA_RADIUS=+arenaRange.value; reflectArena(); });
 [...shapeSeg.children].forEach(b=>b.addEventListener('click',()=>{ arenaShape=b.dataset.shape; reflectArena(); }));
+
+/* ---------- arena presets (GLB) pick like a Pup ---------- */
+let arenaPresetUrl=null, arenaNoObstacles=false, selectedArena='none', arenaCollide=false;
+const ARENAS=[
+  {id:'none', name:'Default', emoji:'⬜', sw:'linear-gradient(135deg,#3a3f4a,#1b1e25)'},
+  {id:'pup',  name:'Pup',     emoji:'🐶', glb:'arena-pup.glb', shape:'square', r:1.8, noObs:true, collide:true, sw:'linear-gradient(135deg,#7bdc8b,#1f5b2a)'},
+  {id:'a2',   name:'Arena 2', emoji:'🏁', glb:'arena-2.glb',   shape:'square', r:1.8, noObs:true, collide:true, sw:'linear-gradient(135deg,#4aa3ff,#1b3a6b)'},
+  {id:'a3',   name:'Arena 3', emoji:'🏟️', glb:'arena-3.glb',   shape:'square', r:1.8, noObs:true, collide:true, sw:'linear-gradient(135deg,#ffd24a,#a05a10)'},
+];
+const arenasel=$('arenasel');
+function applyArena(a){
+  selectedArena=a.id;
+  if(a.id==='none'){ arenaPresetUrl=null; arenaNoObstacles=false; arenaCollide=false; }
+  else { arenaPresetUrl=a.glb; arenaNoObstacles=!!a.noObs; arenaCollide=!!a.collide; if(a.shape) arenaShape=a.shape; if(a.r) ARENA_RADIUS=a.r;
+    arenaGlbData=null; if(arenaModel){scene.remove(arenaModel);arenaModel=null;} }   // preset override upload manual
+  reflectArena();
+}
+ARENAS.forEach(a=>{ const b=document.createElement('button'); b.className='carsw'+(a.id===selectedArena?' on':''); b.title=a.name;
+  b.innerHTML='<i style="background:'+a.sw+'"></i><span class="pupemoji">'+a.emoji+'</span>';
+  b.addEventListener('click',()=>{ [...arenasel.children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); applyArena(a); });
+  arenasel.appendChild(b);
+});
 
 /* arena code: base64(JSON {r,s,c:[[x,z]]}) */
 function encodeArena(){ const o={r:+ARENA_RADIUS.toFixed(2),s:arenaShape[0],c:builderCones.map(c=>[+c.x.toFixed(2),+c.z.toFixed(2)])};
@@ -895,6 +975,8 @@ reflectArena();
 /* ---------- custom arena GLB (visual scenery, local only) ---------- */
 let arenaGlbData=null, arenaModel=null;
 $('arenaglb').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return;
+  arenaPresetUrl=null; arenaNoObstacles=false; arenaCollide=false; selectedArena='none';
+  if(typeof arenasel!=='undefined'&&arenasel){ [...arenasel.children].forEach((x,i)=>x.classList.toggle('on',i===0)); }
   const r=new FileReader(); r.onload=()=>{ arenaGlbData=r.result; arenaSt.textContent='Arena model ready: '+f.name+' (scenery only, local).'; }; r.readAsArrayBuffer(f); });
 $('arenaglbClear').addEventListener('click',()=>{ arenaGlbData=null; if(arenaModel){scene.remove(arenaModel);arenaModel=null;} reflectArena(); });
 function placeArenaModel(){
@@ -1057,18 +1139,19 @@ glbfile.addEventListener('change',async e=>{
   const soloSec=$('soloSec'), mpSec=$('mpSec'), ctrlSec=$('ctrlSec');
   const soloBody=$('soloBody'), mpBody=$('mpBody'), connectRow=$('connectRow'), mpst=$('mpst');
   const botsWrap=$('botsWrap');
-  const modesWrap=$('modesWrap'), arenaWrap=$('arenaWrap'), carWrap=$('carWrap'), modelWrap=$('modelWrap');
-  const shared=[modesWrap,arenaWrap,carWrap,modelWrap];
+  const modesWrap=$('modesWrap'), arenaWrap=$('arenaWrap'), trackWrap=$('trackWrap'), carWrap=$('carWrap'), modelWrap=$('modelWrap');
+  const shared=[modesWrap,arenaWrap,trackWrap,carWrap,modelWrap];
 
-  // pindahkan setelan bersama (mode/arena/car/model) ke section yang aktif
+  // pindahkan setelan bersama (mode/arena/track/car/model) ke section yang aktif
   function moveSharedTo(which){
     if(which==='solo'){
-      // urutan SOLO: mode, arena, car, model, lalu bots
+      // urutan SOLO: mode, arena, track, car, model, lalu bots
       shared.forEach(n=> soloBody.insertBefore(n, botsWrap));
     } else if(which==='mp'){
-      // urutan MP: name, room, mode, join, status, arena, car, model
+      // urutan MP: name, room, mode, join, status, arena, track, car, model
       mpBody.insertBefore(modesWrap, connectRow);
       mpBody.appendChild(arenaWrap);
+      mpBody.appendChild(trackWrap);
       mpBody.appendChild(carWrap);
       mpBody.appendChild(modelWrap);
     }
@@ -1145,6 +1228,7 @@ async function startAR(){
 
 /* in-game ⛶ fullscreen button auto-wired via .fsact */
 onTap(exitBtn,()=>{ if(xrSession) xrSession.end(); });
+onTap(homeBtn,()=>{ try{ if(xrSession) xrSession.end(); }catch(e){} location.reload(); });   // balik ke menu (paling pasti)
 
 function initThree(){
   if(renderer) return;
@@ -1297,11 +1381,14 @@ async function placeCar(refMatrixObj){
 async function startDriving(){
   if(building) return;
   if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
-  car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.y=0; car.visible=true; carPlaced=true;
+  car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.order='YXZ'; car.rotation.set(0,0,0); car.visible=true; carPlaced=true; carY=0;vy=0;airborne=false;onRamp=false;carPitch=0;
   if(shadowGround){ shadowGround.position.set(arenaCenter.x,arenaCenter.y+0.001,arenaCenter.z); shadowGround.visible=true; }
   if(keyLight){ keyLight.position.set(arenaCenter.x+0.6,arenaCenter.y+1.4,arenaCenter.z+0.5); keyLight.target.position.copy(arenaCenter); keyLight.target.updateMatrixWorld(); }
   ownHP=100; dead=false; eliminated=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
   topctrl.style.display='flex'; sidebars.style.display='flex';     // km/h + FUEL/NITRO tampil
+  await loadObsModels();                                          // GLB tire/barrel/ramp (cached)
+  if(arenaPresetUrl){ try{ const res=await fetch(arenaPresetUrl); if(!res.ok) throw 0; arenaGlbData=await res.arrayBuffer(); }
+    catch(e){ arenaGlbData=null; arenaNoObstacles=false; arenaCollide=false; try{showToast('Arena slot masih kosong — pakai default');}catch(_){}} }   // preset arena GLB (slot kosong -> fallback)
   buildArena(); placeArenaModel(); spawnObstacles(); spawnPowerups();
   if(!isMP && botCount>0) await spawnBots();           // bot lawan (solo)
   if(inMatch()){ if(!car.userData.label){ addUnderGlow(car,0xff6b3d); addLabel(car, myName); } resetMatch(); }
@@ -1326,33 +1413,146 @@ function repark(){
 function buildArena(){
   if(arenaRing){ scene.remove(arenaRing); arenaRing=null; }
   if(gameMode==='freeroam') return;            // free roam: tanpa batas arena
-  const R=ARENA_RADIUS;
+  const R=ARENA_RADIUS, NEON=0x35ecff;
+  const grp=new THREE.Group();
   if(arenaShape==='square'){
     const pts=[[-R,-R],[R,-R],[R,R],[-R,R],[-R,-R]].map(p=>new THREE.Vector3(p[0],0,p[1]));
-    const g=new THREE.BufferGeometry().setFromPoints(pts);
-    arenaRing=new THREE.Line(g,new THREE.LineBasicMaterial({color:0x25e0ff,transparent:true,opacity:.65}));
+    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:NEON,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));
+    grp.add(line); grp.userData.core=line;
   } else {
-    const geo=new THREE.RingGeometry(R-0.012,R+0.012,90).rotateX(-Math.PI/2);
-    arenaRing=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x25e0ff,transparent:true,opacity:.55,side:THREE.DoubleSide}));
+    const mk=(ri,ro,op)=>{ const m=new THREE.Mesh(new THREE.RingGeometry(ri,ro,96).rotateX(-Math.PI/2),
+      new THREE.MeshBasicMaterial({color:NEON,transparent:true,opacity:op,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); return m; };
+    const core=mk(R-0.008,R+0.008,0.95); grp.add(mk(R-0.06,R-0.008,0.16)); grp.add(mk(R+0.008,R+0.06,0.16)); grp.add(core);
+    grp.userData.core=core;
   }
-  arenaRing.position.copy(arenaCenter); arenaRing.position.y+=0.002; scene.add(arenaRing);
+  arenaRing=grp; arenaRing.position.copy(arenaCenter); arenaRing.position.y+=0.002; scene.add(arenaRing);
 }
+/* ---------- obstacle/ramp 3D models (GLB, cached once, cloned; procedural fallback) ---------- */
+const obsTpl={};
+function deDark(model){ model.traverse(o=>{ if(o.isMesh&&o.material){ const ms=Array.isArray(o.material)?o.material:[o.material];
+  for(const m of ms){ if('metalness' in m) m.metalness=Math.min(m.metalness,0.2); if('roughness' in m) m.roughness=Math.max(0.4,m.roughness); if('envMapIntensity' in m) m.envMapIntensity=0.5; m.needsUpdate=true; } } }); }
+function fitTire(model){ deDark(model); model.rotation.x=Math.PI/2;            // rebah: lubang ke atas
+  let box=new THREE.Box3().setFromObject(model),sz=new THREE.Vector3();box.getSize(sz);
+  model.scale.setScalar(0.13/Math.max(sz.x,sz.z,1e-3));
+  box=new THREE.Box3().setFromObject(model);const c=new THREE.Vector3();box.getCenter(c);
+  model.position.x-=c.x;model.position.z-=c.z;model.position.y-=box.min.y;
+  const g=new THREE.Group();g.add(model);enableShadows(g);
+  box=new THREE.Box3().setFromObject(g);box.getSize(sz);
+  g.userData.r=Math.max(sz.x,sz.z)/2*0.9; g.userData.top=sz.y; g.userData.kind='tire'; return g; }
+function fitBarrel(model){ deDark(model);
+  let box=new THREE.Box3().setFromObject(model),sz=new THREE.Vector3();box.getSize(sz);
+  model.scale.setScalar(0.13/Math.max(sz.y,1e-3));
+  box=new THREE.Box3().setFromObject(model);const c=new THREE.Vector3();box.getCenter(c);
+  model.position.x-=c.x;model.position.z-=c.z;model.position.y-=box.min.y;
+  const g=new THREE.Group();g.add(model);
+  box=new THREE.Box3().setFromObject(g);box.getSize(sz);
+  const flame=new THREE.Mesh(new THREE.ConeGeometry(Math.max(sz.x,sz.z)*0.32,sz.y*0.42,10),
+    new THREE.MeshBasicMaterial({color:0xff8a1e,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));
+  flame.name='__flame'; flame.position.y=sz.y+sz.y*0.14; flame.renderOrder=9; g.add(flame);
+  enableShadows(g);
+  g.userData.r=Math.max(sz.x,sz.z)/2*0.92; g.userData.top=sz.y*1.4; g.userData.kind='barrel'; return g; }
+function fitRamp(model){ deDark(model);
+  let box=new THREE.Box3().setFromObject(model),sz=new THREE.Vector3();box.getSize(sz);
+  model.scale.setScalar(0.34/Math.max(sz.z,1e-3));        // target panjang lintasan ~0.34 m (sumbu Z, tanjakan ke +Z)
+  box=new THREE.Box3().setFromObject(model);const c=new THREE.Vector3();box.getCenter(c);
+  model.position.x-=c.x;model.position.z-=c.z;model.position.y-=box.min.y;
+  const g=new THREE.Group();g.add(model);enableShadows(g);
+  box=new THREE.Box3().setFromObject(g);box.getSize(sz);
+  return {group:g, dims:{Lh:sz.z, W:sz.x, h:sz.y, ang:Math.atan2(sz.y,sz.z)}}; }
+async function loadObsModels(){ if(obsTpl._done) return;
+  const L=new GLTFLoader();
+  try{ const g=await L.loadAsync('obs-tire.glb');   obsTpl.tire=fitTire(g.scene); }catch(e){}
+  try{ const g=await L.loadAsync('obs-barrel.glb'); obsTpl.barrel=fitBarrel(g.scene); }catch(e){}
+  try{ const g=await L.loadAsync('obs-ramp.glb');   const r=fitRamp(g.scene); obsTpl.ramp=r.group; obsTpl.rampDims=r.dims; }catch(e){}
+  obsTpl._done=true; }
+
+function makeTire(){
+  if(obsTpl.tire){ const g=obsTpl.tire.clone(true); g.userData.r=obsTpl.tire.userData.r; g.userData.top=obsTpl.tire.userData.top; g.userData.kind='tire'; return g; }
+  const g=new THREE.Group();
+  const t=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.022,10,20).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:0x1a1a1d,roughness:.92,metalness:0}));
+  t.position.y=0.022; t.castShadow=true; g.add(t);
+  g.userData.r=0.06; g.userData.top=0.05; g.userData.kind='tire'; return g;
+}
+function makeBarrel(){
+  if(obsTpl.barrel){ const g=obsTpl.barrel.clone(true); g.userData.r=obsTpl.barrel.userData.r; g.userData.top=obsTpl.barrel.userData.top; g.userData.kind='barrel'; g.userData.flame=g.getObjectByName('__flame'); return g; }
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.11,16),new THREE.MeshStandardMaterial({color:0xb02418,roughness:.45,metalness:.3,emissive:0x350800}));
+  body.position.y=0.055; body.castShadow=true; g.add(body);
+  const flame=new THREE.Mesh(new THREE.ConeGeometry(0.023,0.05,10),new THREE.MeshBasicMaterial({color:0xff8a1e,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false}));
+  flame.name='__flame'; flame.position.y=0.14; flame.renderOrder=9; g.add(flame); g.userData.flame=flame;
+  g.userData.r=0.05; g.userData.top=0.14; g.userData.kind='barrel'; return g;
+}
+function placeObstacle(sx,sz,kind){ if(Math.hypot(sx,sz)<SPAWN_CLEAR_OBS) return;   // jangan taruh di titik spawn
+  const o = kind==='barrel'?makeBarrel():makeTire();   // base model di y=0
+  if(calib){ const lp=sharedToLocal(sx,sz); o.position.set(lp.x,arenaCenter.y+0.001,lp.z); }
+  else o.position.set(arenaCenter.x+sx,arenaCenter.y+0.001,arenaCenter.z+sz);
+  scene.add(o); obstacles.push(o); }
+function addRamp(sx,sz,dir){
+  if(Math.hypot(sx,sz)<SPAWN_CLEAR_RAMP) return;        // jangan taruh ramp di titik spawn
+  let g, dims;
+  if(obsTpl.ramp){ g=obsTpl.ramp.clone(true); dims=obsTpl.rampDims; }
+  else { const ang=0.3, Lh=0.24, W=0.34, slope=Lh/Math.cos(ang), h=Lh*Math.tan(ang); g=new THREE.Group();
+    const plank=new THREE.Mesh(new THREE.BoxGeometry(W,0.014,slope),new THREE.MeshStandardMaterial({color:0xf2a93b,roughness:.5,metalness:.2,emissive:0x3a1e00}));
+    plank.castShadow=true; plank.rotation.x=-ang; plank.position.y=h/2; g.add(plank); dims={Lh,W,h,ang}; }
+  let wx,wz; if(calib){ const lp=sharedToLocal(sx,sz); wx=lp.x; wz=lp.z; } else { wx=arenaCenter.x+sx; wz=arenaCenter.z+sz; }
+  g.position.set(wx, arenaCenter.y+0.001, wz); g.rotation.y=dir; scene.add(g);
+  ramps.push({group:g, cx:wx, cz:wz, dir, ang:dims.ang, Lh:dims.Lh, W:dims.W, h:dims.h});
+}
+function addRandomRamps(R){ const n = gameMode==='freeroam'?1:1+(rng()<0.5?1:0);
+  for(let i=0;i<n;i++){ const a=rng()*Math.PI*2, r=0.18+rng()*(R*0.5); addRamp(Math.cos(a)*r,Math.sin(a)*r, rng()*Math.PI*2); } }
 function spawnObstacles(){
-  clearObstacles();
-  if(gameMode==='freeroam') return;            // free roam: tanpa cone
-  const coneGeo=new THREE.ConeGeometry(0.045,0.09,18);
-  const coneMat=new THREE.MeshStandardMaterial({color:0xffa033,roughness:.5,emissive:0x3a1e00});
-  const place=(sx,sz)=>{ const o=new THREE.Mesh(coneGeo,coneMat);
-    if(calib){ const lp=sharedToLocal(sx,sz); o.position.set(lp.x,arenaCenter.y+0.045,lp.z); }
-    else o.position.set(arenaCenter.x+sx,arenaCenter.y+0.045,arenaCenter.z+sz);
-    o.userData.r=0.05; o.castShadow=true; scene.add(o); obstacles.push(o); };
-  if(customCones && customCones.length){ for(const c of customCones) place(c.x,c.z); }
-  else { for(let i=0;i<N_OBSTACLES;i++){ const a=rng()*Math.PI*2, r=0.4+rng()*(ARENA_RADIUS-0.55); place(Math.cos(a)*r,Math.sin(a)*r); } }
+  clearObstacles(); clearRamps();
+  const R=ARENA_RADIUS;
+  if(gameMode==='freeroam'){ if(flagMissionOn) spawnFlags(); else clearFlags(); if(!arenaNoObstacles) addRandomRamps(R); return; }   // free roam: misi opsional
+  clearFlags();
+  if(arenaNoObstacles) return;          // arena preset udah bawa rintangan sendiri
+  if(customCones && customCones.length){ for(const c of customCones) placeObstacle(c.x,c.z,'tire'); addRandomRamps(R); return; }  // Arena Builder override
+  const L=trackLayout(R);
+  if(L){ for(const o of L.obs) placeObstacle(o.x,o.z,o.kind); for(const rp of L.ramps) addRamp(rp.x,rp.z,rp.dir); return; }  // predefined track
+  if(gameMode!=='freeroam'){ for(let i=0;i<N_OBSTACLES;i++){ const a=rng()*Math.PI*2, r=0.4+rng()*(R-0.55); placeObstacle(Math.cos(a)*r,Math.sin(a)*r, rng()<0.45?'barrel':'tire'); } }  // random
+  addRandomRamps(R);
+}
+function groundHeightAt(x,z){
+  let best=0, ang=0;
+  for(const rp of ramps){
+    const dx=x-rp.cx, dz=z-rp.cz;
+    const lx = dx*Math.cos(rp.dir) - dz*Math.sin(rp.dir);
+    const lz = dx*Math.sin(rp.dir) + dz*Math.cos(rp.dir);
+    if(Math.abs(lx)<=rp.W/2 && lz>=-rp.Lh/2 && lz<=rp.Lh/2){
+      const hh=(lz+rp.Lh/2)/rp.Lh*rp.h; if(hh>best){ best=hh; ang=rp.ang; }
+    }
+  }
+  return {h:best, ang};
+}
+/* mesh collider arena GLB: 8 sinar horizontal dari mobil, dorong keluar kalau nembus dinding/rintangan model */
+const _ray=new THREE.Raycaster(), _corigin=new THREE.Vector3(), _cdirs=[];
+for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; _cdirs.push(new THREE.Vector3(Math.cos(a),0,Math.sin(a))); }
+function collideArenaMesh(){
+  if(!arenaCollide || !arenaModel || Math.abs(speed)<0.003) return;
+  const oy=arenaCenter.y+0.03; let hit=false;
+  for(const d of _cdirs){
+    _corigin.set(car.position.x,oy,car.position.z); _ray.set(_corigin,d); _ray.far=CAR_R+0.02;
+    const r=_ray.intersectObject(arenaModel,true);
+    if(r.length && r[0].distance<CAR_R){ const push=CAR_R-r[0].distance; car.position.x-=d.x*push; car.position.z-=d.z*push; hit=true; }
+  }
+  if(hit) speed*=0.5;
+}
+function explodeBarrel(o,atSpeed){
+  spawnFlash(o.position);
+  spawnBurst(o.position,0xff6a1a,26,2.0); spawnBurst(o.position,0xffd24a,16,1.3); spawnSmoke(o.position,12,1.7);
+  try{ sfxCrash(Math.min(1.3,0.7+Math.abs(atSpeed))); }catch(e){}
+  for(const b of bots){ if(b.eliminated||!b.group) continue;
+    const d=Math.hypot(b.x-o.position.x,b.z-o.position.z);
+    if(d<0.4){ damageBot(b,22); const nx=(b.x-o.position.x)/(d||1),nz=(b.z-o.position.z)/(d||1); b.x+=nx*0.12; b.z+=nz*0.12; } }
+  scene.remove(o); const idx=obstacles.indexOf(o); if(idx>=0) obstacles.splice(idx,1);
 }
 function clearObstacles(){obstacles.forEach(o=>scene.remove(o));obstacles.length=0;}
+function clearRamps(){ ramps.forEach(r=>scene.remove(r.group)); ramps.length=0; }
 function clearMarks(){marks.forEach(m=>scene.remove(m));marks.length=0;}
 function clearPowerups(){ powerups.forEach(p=>{ if(p.timer)clearTimeout(p.timer); scene.remove(p.mesh); }); powerups.length=0; }
-function clearWorld(){ if(arenaRing){scene.remove(arenaRing);arenaRing=null;} clearObstacles(); clearMarks(); clearPowerups();
+function clearWorld(){ if(arenaRing){scene.remove(arenaRing);arenaRing=null;} clearObstacles(); clearRamps(); clearMarks(); clearPowerups(); clearFlags();
+  for(const f of flashes) scene.remove(f.mesh); flashes.length=0;
   if(shieldMesh) shieldMesh.visible=false; clearBots();
   if(arenaModel){ scene.remove(arenaModel); arenaModel=null; }
   for(const id in remoteCars) removeRemote(id); }
@@ -1413,6 +1613,60 @@ function collectPowerup(p){
   p.timer=setTimeout(()=>{ if(carPlaced) placePowerup(p); }, 8000);   // respawn di titik baru
 }
 function shielded(){ return performance.now()<shieldUntil; }
+
+/* ---------- Free Roam mission: kumpulin 10 bendera (time attack) ---------- */
+const flagHud=$('flaghud'), flagItems=[]; let flagCount=0, flagTotal=10, flagStartT=0, flagActive=false;
+function makeFlag(){
+  const g=new THREE.Group();
+  const core=new THREE.Mesh(new THREE.OctahedronGeometry(0.042,0),
+    new THREE.MeshStandardMaterial({color:0xffd24a,emissive:0xffae20,emissiveIntensity:.8,roughness:.25,metalness:.5}));
+  core.castShadow=true; g.add(core);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.055,0.072,24).rotateX(-Math.PI/2),
+    new THREE.MeshBasicMaterial({color:0xffd24a,transparent:true,opacity:.55,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+  ring.position.y=-0.038; g.add(ring); g.userData.core=core;
+  return g;
+}
+function clearFlags(){ for(const f of flagItems) scene.remove(f.mesh); flagItems.length=0; flagActive=false; updateFlagHud(); }
+function spawnFlags(){
+  for(const f of flagItems) scene.remove(f.mesh); flagItems.length=0;
+  flagCount=0; flagStartT=0; flagActive=true;
+  for(let i=0;i<flagTotal;i++){ const mesh=makeFlag(); scene.add(mesh);
+    let o,tries=0; do{ o=randInArena(); tries++; }while(Math.hypot(o.x,o.z)<0.4 && tries<24);   // jauh dari titik spawn
+    mesh.position.set(arenaCenter.x+o.x, arenaCenter.y+0.07, arenaCenter.z+o.z);
+    flagItems.push({mesh,taken:false}); }
+  updateFlagHud();
+}
+function updateFlags(dt){
+  if(!flagActive) return;
+  const t=performance.now()/1000;
+  for(const f of flagItems){ if(f.taken) continue;
+    const c=f.mesh.userData.core; c.rotation.y+=dt*2.2;
+    c.scale.setScalar(1+Math.sin(t*4+f.mesh.position.x*6)*0.18);                         // occulating
+    c.material.emissiveIntensity=0.6+0.5*(0.5+0.5*Math.sin(t*5+f.mesh.position.z*7));     // glow animated
+    f.mesh.position.y=arenaCenter.y+0.07+Math.sin(t*2.5+f.mesh.position.x*5)*0.015;
+    if(carPlaced&&!dead&&car){ const dx=car.position.x-f.mesh.position.x, dz=car.position.z-f.mesh.position.z;
+      if(Math.hypot(dx,dz)<0.1) collectFlag(f); }
+  }
+  if(flagStartT) updateFlagHud();
+}
+function collectFlag(f){
+  f.taken=true; scene.remove(f.mesh);
+  if(!flagStartT) flagStartT=performance.now();
+  flagCount++;
+  spawnFlash(f.mesh.position); spawnBurst(f.mesh.position,0xffd24a,18,1.1); try{ sfxPickup(); }catch(e){}
+  showToast('🚩 '+flagCount+' / '+flagTotal);
+  updateFlagHud();
+  if(flagCount>=flagTotal){ flagActive=false;
+    const secs=((performance.now()-flagStartT)/1000).toFixed(1);
+    showResult('🏁 Cleared!','champ','All '+flagTotal+' flags in '+secs+'s', true); }
+}
+function updateFlagHud(){
+  if(!flagHud) return;
+  if(gameMode!=='freeroam' || !flagActive){ flagHud.style.display='none'; return; }
+  flagHud.style.display='block';
+  const secs = flagStartT ? ((performance.now()-flagStartT)/1000).toFixed(1) : '0.0';
+  flagHud.textContent='🚩 '+flagCount+'/'+flagTotal+'  ·  '+secs+'s';
+}
 function dropMark(localX){
   const p=car.localToWorld(new THREE.Vector3(localX,0.0015,-0.062));
   let m; if(marks.length>=MAX_MARKS){m=marks.shift();}else{m=new THREE.Mesh(markGeo,markMat);scene.add(m);}
@@ -1453,7 +1707,7 @@ function addUnderGlow(group,color){
 /* ---------- health (server-authoritative; client only displays) ---------- */
 function updateHpBar(){ const h=Math.max(0,Math.round(ownHP)); hpfill.style.height=h+'%'; hptxt.textContent=h; }
 function enterDead(){ dead=true; speed=0; statusT.textContent='Wrecked! Respawning…'; if(car){ spawnBurst(car.position,0xff5a30,26,1.4); car.visible=false; } }
-function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.y=0; car.visible=true; } speed=0; statusT.textContent='Race'; }
+function exitDead(){ dead=false; if(car){ car.position.copy(arenaCenter); heading=0; car.rotation.set(0,0,0); car.visible=true; } speed=0; carY=0;vy=0;airborne=false;onRamp=false;carPitch=0; statusT.textContent='Race'; }
 // local combat (dipakai di mode P2P gratis; di mode WS damage diatur server)
 function localDamage(amt){
   if(dead||eliminated) return;
@@ -1475,9 +1729,10 @@ function resetRound(){
   eliminated=false; dead=false; ownHP=100; nitro=100; shieldUntil=0; speed=0; throttleInput=0;
   if(car){ const a=Math.random()*Math.PI*2, rr=0.45;          // sebar posisi biar tidak numpuk
     car.position.set(arenaCenter.x+Math.cos(a)*rr, arenaCenter.y, arenaCenter.z+Math.sin(a)*rr);
-    heading=0; car.rotation.y=0; car.visible=true; }
+    heading=0; car.rotation.set(0,0,0); car.visible=true; carY=0;vy=0;airborne=false;onRamp=false;carPitch=0; }
   for(const b of bots){ if(b.timer)clearTimeout(b.timer); b.hp=100; b.eliminated=false; b.speed=0; placeBot(b); botLabelHp(b); if(b.group)b.group.visible=true; }
   updateHpBar(); updateNitroBar(); hideResult(); roundResolving=false; roundPlayers=0;
+  if(gameMode==='freeroam'){ carY=0;vy=0;airborne=false; if(car){car.position.set(arenaCenter.x,arenaCenter.y,arenaCenter.z); heading=0; car.rotation.set(0,0,0);} if(flagMissionOn) spawnFlags(); }
   statusT.textContent='Race';
 }
 function updateMatch(){
@@ -1577,9 +1832,11 @@ function updateBots(dt){
     if(gameMode==='freeroam'){ /* roam bebas */ }
     else if(inMatch() && gameMode==='sumo'){ if(outsideArena(b.x,b.z,0.03)){ botKO(b); continue; } }
     else { const c=clampArena(b.x,b.z,CAR_R); if(c.hit){ b.x=c.x; b.z=c.z; b.heading+=Math.PI*0.6; b.speed*=0.5; } }
-    // obstacles
+    // obstacles (tong api meledak kalau bot nabrak kenceng)
     for(const o of obstacles){ const ox=b.x-o.position.x,oz=b.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
-      if(d<min&&d>1e-4){ const nx=ox/d,nz=oz/d; b.x=o.position.x+nx*min; b.z=o.position.z+nz*min; b.speed*=0.6; } }
+      if(d<min&&d>1e-4){ const nx=ox/d,nz=oz/d; b.x=o.position.x+nx*min; b.z=o.position.z+nz*min;
+        if(o.userData.kind==='barrel' && Math.abs(b.speed)>0.12){ b.speed*=-0.5; damageBot(b,14); explodeBarrel(o,b.speed); break; }
+        b.speed*=0.6; } }
     // bot-bot: pisah + saling lukai/dorong (biar ronde bisa selesai walau pemain KO)
     for(const o2 of bots){ if(o2===b||o2.eliminated||!o2.group)continue;
       const ox=b.x-o2.x,oz=b.z-o2.z,d=Math.hypot(ox,oz),min=CAR_R*2;
@@ -1641,6 +1898,28 @@ function updateParticles(dt){
     else { p.vel.y-=1.4*dt; p.mesh.position.addScaledVector(p.vel,dt);
       p.mesh.material.opacity=t; p.mesh.scale.setScalar(0.4+t*0.9); }
   }
+}
+function spawnDust(x,z){
+  let p=PARTICLES.find(q=>!q.alive);
+  if(!p){ if(PARTICLES.length>=PMAX) return;
+    const m=new THREE.Mesh(pGeo,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));
+    m.renderOrder=8; scene.add(m); p={mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,alive:false,smoke:false}; PARTICLES.push(p); }
+  p.smoke=true; p.mesh.material.blending=THREE.NormalBlending; p.mesh.material.color.setHex(0xcbb78d);
+  p.mesh.position.set(x,arenaCenter.y+0.012,z);
+  const a=Math.random()*Math.PI*2, sp=0.05+Math.random()*0.09;
+  p.vel.set(Math.cos(a)*sp,0.05+Math.random()*0.08,Math.sin(a)*sp);
+  p.maxLife=p.life=0.4+Math.random()*0.3; p.alive=true; p.mesh.visible=true; p.mesh.scale.setScalar(0.7);
+}
+function spawnFlash(pos){
+  const geo=new THREE.RingGeometry(0.02,0.05,24).rotateX(-Math.PI/2);
+  const mat=new THREE.MeshBasicMaterial({color:0xffb24a,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const m=new THREE.Mesh(geo,mat); m.position.copy(pos); m.position.y=arenaCenter.y+0.02; m.renderOrder=10; scene.add(m);
+  flashes.push({mesh:m,life:0.38,maxLife:0.38});
+}
+function updateFlashes(dt){
+  for(let i=flashes.length-1;i>=0;i--){ const f=flashes[i]; f.life-=dt;
+    if(f.life<=0){ scene.remove(f.mesh); f.mesh.geometry.dispose(); f.mesh.material.dispose(); flashes.splice(i,1); continue; }
+    const t=f.life/f.maxLife, s=1+(1-t)*7; f.mesh.scale.set(s,s,s); f.mesh.material.opacity=t*0.9; }
 }
 function spark(x,z,color){
   const now=performance.now(); if(now-lastSparkT<110) return; lastSparkT=now;
@@ -1747,6 +2026,13 @@ function sfxCrash(intensity){
   const og=audioCtx.createGain(); og.gain.setValueAtTime(v*0.9,now); og.gain.exponentialRampToValueAtTime(0.001,now+0.17);
   o.connect(og); og.connect(master); o.start(); o.stop(now+0.19);
 }
+function sfxPickup(){
+  if(!audioCtx||muted) return; const now=audioCtx.currentTime;
+  const o=audioCtx.createOscillator(); o.type='triangle';
+  o.frequency.setValueAtTime(680,now); o.frequency.exponentialRampToValueAtTime(1360,now+0.11);
+  const g=audioCtx.createGain(); g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(0.32,now+0.02); g.gain.exponentialRampToValueAtTime(0.001,now+0.2);
+  o.connect(g); g.connect(master); o.start(); o.stop(now+0.22);
+}
 function toggleMute(){
   muted=!muted; muteBtn.textContent=muted?'🔇':'🔊';
   if(audioCtx) master.gain.setTargetAtTime(muted?0:0.9,audioCtx.currentTime,0.05);
@@ -1766,11 +2052,12 @@ function render(t,frame){
       if(surfaceFound){ surfaceFound=false; dot.className='dot searching'; statusT.textContent='Looking for a surface…'; placeBtn.disabled=true; } }
   } else if(carPlaced){ reticle.visible=false; }
 
-  if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); updatePowerups(dt); }
+  if(carPlaced&&car){ updateWheel(dt); driveCar(dt); updateAudio(); updatePowerups(dt); updateFlags(dt); }
   if(bots.length&&carPlaced) updateBots(dt);
   if(isMP&&calib) updateRemotes(dt);
   if(inMatch()&&carPlaced) updateMatch();
-  updateParticles(dt);
+  updateParticles(dt); updateFlashes(dt);
+  if(arenaRing&&arenaRing.userData.core){ arenaRing.userData.core.material.opacity=0.7+0.28*Math.sin(performance.now()/600); }
   renderer.render(scene,camera);
 }
 
@@ -1791,6 +2078,7 @@ function driveCar(dt){
   if(Math.abs(speed)<.001) speed=0;
   // mundur dibiarkan spt sekarang (udah benar), maju di-flip biar benar juga: pakai -steer*speed
   heading+=-steerInput*speed*TURN_RATE*dt;
+  const px=car.position.x, pz=car.position.z;     // simpan posisi sebelum gerak (buat block sisi ramp)
   car.position.x+=Math.sin(heading)*speed*dt;
   car.position.z+=Math.cos(heading)*speed*dt;
   // arena bounds (free roam: tanpa batas; sumo: keluar = KO; lainnya: mentok)
@@ -1799,15 +2087,46 @@ function driveCar(dt){
   else if(inMatch() && gameMode==='sumo'){
     if(!eliminated && outsideArena(car.position.x,car.position.z,0.03)){ spawnBurst(car.position,0xffd24a,20,1.2); handleKO(); return; }
   } else { const c=clampArena(car.position.x,car.position.z,CAR_R); if(c.hit){ car.position.x=c.x; car.position.z=c.z; speed*=-0.35; } }
-  // obstacle collision (+ damage saat kena cone)
+  // ---- vertical physics: ramp + jump (gravity) ----
+  const gnd=groundHeightAt(car.position.x,car.position.z);
+  if(airborne){
+    carY+=vy*dt; vy-=GRAV*dt;
+    const land=Math.max(gnd.h,0);
+    if(carY<=land){ const impact=vy; carY=land; vy=0; airborne=false; onRamp=gnd.h>0.002;
+      if(impact<-0.6){ spawnSmoke(new THREE.Vector3(car.position.x,arenaCenter.y+0.02,car.position.z),5,1); try{sfxCrash(0.3);}catch(e){} } }
+  } else {
+    const MAXSTEP=0.02;                              // lip maksimum yg bisa dinaiki tanpa ramp
+    if(gnd.h>0.002){                                 // lagi di atas footprint ramp
+      if(gnd.h > carY+MAXSTEP){                       // nabrak sisi tinggi/belakang -> jadi tembok
+        car.position.x=px; car.position.z=pz; speed*=-0.3; onRamp=false;
+      } else { carY=gnd.h; onRamp=true; lastRampAng=gnd.ang; }   // naik/turun mulus ngikutin slope
+    } else {                                          // di luar footprint ramp
+      if(carY>0.012){ airborne=true; vy=Math.abs(speed)*Math.sin(lastRampAng||0.5)*RAMP_LAUNCH+0.05; } // lepas ujung atas = lompat
+      else { carY=0; onRamp=false; }
+    }
+  }
+  car.position.y=arenaCenter.y+carY;
+  let pitchTarget = airborne ? Math.max(-0.55,Math.min(0.55,-vy*1.6)) : (onRamp? -lastRampAng : 0);
+  carPitch += (pitchTarget-carPitch)*Math.min(1,dt*10);
+  // obstacle collision (ban = bumper, tong api = MELEDAK; lompati kalau lagi terbang di atasnya)
   for(const o of obstacles){
+    if(carY > (o.userData.top||0.12)) continue;                  // jumped over it
     const ox=car.position.x-o.position.x,oz=car.position.z-o.position.z,d=Math.hypot(ox,oz),min=CAR_R+o.userData.r;
     if(d<min&&d>1e-4){const nx=ox/d,nz=oz/d;car.position.x=o.position.x+nx*min;car.position.z=o.position.z+nz*min;
+      if(o.userData.kind==='barrel' && Math.abs(speed)>0.14){
+        if(!SERVER_URL && !shielded()) localDamage(18+Math.abs(speed)*30);   // tong langsung ilang -> selalu ngurangin HP sekali
+        lastObsHitT=performance.now();
+        const blast=0.10+Math.abs(speed)*0.18;
+        car.position.x+=nx*blast; car.position.z+=nz*blast;   // mental ke belakang
+        if(!airborne){ airborne=true; vy=0.30; }              // ke-pental naik dikit
+        speed*=-0.55;
+        explodeBarrel(o,speed); break;
+      }
       if(Math.abs(speed)>0.1) spark((car.position.x+o.position.x)/2,(car.position.z+o.position.z)/2,0xffae42);
       if(Math.abs(speed)>0.25){ sfxCrash(Math.abs(speed)*0.45); spawnSmoke(o.position,5,1); }
       const nowO=performance.now();
       if(!SERVER_URL && !shielded() && Math.abs(speed)>0.15 && nowO-lastObsHitT>HIT_COOLDOWN){
-        lastObsHitT=nowO; localDamage(4+Math.abs(speed)*25);
+        lastObsHitT=nowO; localDamage(o.userData.kind==='tire'?2:4+Math.abs(speed)*25);
       }
       speed*=-0.3;}
   }
@@ -1856,7 +2175,11 @@ function driveCar(dt){
       }
     }
   }
-  car.rotation.y=heading;
+  collideArenaMesh();
+  car.rotation.set(carPitch, heading, 0);
+  flameTick++; if((flameTick&1)===0){ for(const o of obstacles){ const f=o.userData.flame; if(f){ f.scale.y=0.75+Math.random()*0.55; f.material.opacity=0.7+Math.random()*0.3; } } }
+  if(!airborne && Math.abs(speed)>0.12 && (flameTick%3===0))   // debu dari ban pas jalan
+    spawnDust(car.position.x-Math.sin(heading)*0.07, car.position.z-Math.cos(heading)*0.07);
   const steerAngle=steerInput*STEER_MAX;
   for(const p of frontWheels) p.rotation.y=steerAngle;
   const spin=(speed*dt)/WHEEL_R;
@@ -1866,6 +2189,12 @@ function driveCar(dt){
   const kmh=Math.round(Math.abs(speed)*133);   // MAX_SPEED 0.6 -> ~80 km/h
   spdT.textContent=Math.abs(speed).toFixed(1)+' m/s';
   if(speedoT) speedoT.textContent=kmh;
+}
+</script>
+<script>
+/* PWA service worker — caches everything for offline play (solo). MP still needs internet. */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
 </script>
 </body>
