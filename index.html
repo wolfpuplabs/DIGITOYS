@@ -543,7 +543,7 @@
       <div class="st" id="arenaPreSt">Default = procedural (use Track below). Pup = pre-built course.</div>
       <div class="sublbl" style="margin-top:14px">Arena size &amp; shape</div>
       <div class="row">
-        <input id="arenaRange" type="range" min="0.7" max="2.2" step="0.05" value="1.1" />
+        <input id="arenaRange" type="range" min="0.7" max="4.0" step="0.05" value="1.1" />
         <span class="val" id="arenaVal">Ø 2.2 m</span>
       </div>
       <div class="seg" id="shapeSeg">
@@ -884,18 +884,18 @@ arenaRange.addEventListener('input',()=>{ ARENA_RADIUS=+arenaRange.value; reflec
 [...shapeSeg.children].forEach(b=>b.addEventListener('click',()=>{ arenaShape=b.dataset.shape; reflectArena(); }));
 
 /* ---------- arena presets (GLB) pick like a Pup ---------- */
-let arenaPresetUrl=null, arenaNoObstacles=false, selectedArena='none', arenaCollide=false;
+let arenaPresetUrl=null, arenaNoObstacles=false, selectedArena='none', arenaCollide=false, arenaSpawn=null;
 const ARENAS=[
   {id:'none', name:'Default', emoji:'⬜', sw:'linear-gradient(135deg,#3a3f4a,#1b1e25)'},
   {id:'pup',  name:'Pup',     emoji:'🐶', glb:'arena-pup.glb', shape:'square', r:1.8, noObs:true, collide:true, sw:'linear-gradient(135deg,#7bdc8b,#1f5b2a)'},
-  {id:'a2',   name:'Arena 2', emoji:'🏁', glb:'arena-2.glb',   shape:'square', r:1.8, noObs:true, collide:true, sw:'linear-gradient(135deg,#4aa3ff,#1b3a6b)'},
+  {id:'a2',   name:'Arena 2', emoji:'🏁', glb:'arena-2.glb',   shape:'square', r:3.0, noObs:true, collide:true, spawn:{x:0.135,z:0.42,yaw:4.71}, sw:'linear-gradient(135deg,#4aa3ff,#1b3a6b)'},
   {id:'a3',   name:'Arena 3', emoji:'🏟️', glb:'arena-3.glb',   shape:'square', r:1.8, noObs:true, collide:true, sw:'linear-gradient(135deg,#ffd24a,#a05a10)'},
 ];
 const arenasel=$('arenasel');
 function applyArena(a){
   selectedArena=a.id;
-  if(a.id==='none'){ arenaPresetUrl=null; arenaNoObstacles=false; arenaCollide=false; }
-  else { arenaPresetUrl=a.glb; arenaNoObstacles=!!a.noObs; arenaCollide=!!a.collide; if(a.shape) arenaShape=a.shape; if(a.r) ARENA_RADIUS=a.r;
+  if(a.id==='none'){ arenaPresetUrl=null; arenaNoObstacles=false; arenaCollide=false; arenaSpawn=null; }
+  else { arenaPresetUrl=a.glb; arenaNoObstacles=!!a.noObs; arenaCollide=!!a.collide; arenaSpawn=a.spawn||null; if(a.shape) arenaShape=a.shape; if(a.r) ARENA_RADIUS=a.r;
     arenaGlbData=null; if(arenaModel){scene.remove(arenaModel);arenaModel=null;} }   // preset override upload manual
   reflectArena();
 }
@@ -975,7 +975,7 @@ reflectArena();
 /* ---------- custom arena GLB (visual scenery, local only) ---------- */
 let arenaGlbData=null, arenaModel=null;
 $('arenaglb').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return;
-  arenaPresetUrl=null; arenaNoObstacles=false; arenaCollide=false; selectedArena='none';
+  arenaPresetUrl=null; arenaNoObstacles=false; arenaCollide=false; arenaSpawn=null; selectedArena='none';
   if(typeof arenasel!=='undefined'&&arenasel){ [...arenasel.children].forEach((x,i)=>x.classList.toggle('on',i===0)); }
   const r=new FileReader(); r.onload=()=>{ arenaGlbData=r.result; arenaSt.textContent='Arena model ready: '+f.name+' (scenery only, local).'; }; r.readAsArrayBuffer(f); });
 $('arenaglbClear').addEventListener('click',()=>{ arenaGlbData=null; if(arenaModel){scene.remove(arenaModel);arenaModel=null;} reflectArena(); });
@@ -985,7 +985,8 @@ function placeArenaModel(){
   try{ new GLTFLoader().parse(arenaGlbData,'',gltf=>{
     const m=gltf.scene;
     m.traverse(o=>{ if(o.isMesh&&o.material){ const ms=Array.isArray(o.material)?o.material:[o.material];
-      for(const mm of ms){ if('metalness'in mm) mm.metalness=Math.min(mm.metalness,0.2); if('envMapIntensity'in mm) mm.envMapIntensity=1.0; mm.needsUpdate=true; } } });
+      for(const mm of ms){ if('metalness'in mm) mm.metalness=Math.min(mm.metalness,0.2); if('envMapIntensity'in mm) mm.envMapIntensity=1.0; mm.needsUpdate=true; }
+      o.receiveShadow=true; o.userData.drivable = ms.some(mm=>DRIVE_MATS.has(mm.name)); } });   // tandai aspal/strip start + terima bayangan
     let box=new THREE.Box3().setFromObject(m), size=new THREE.Vector3(); box.getSize(size);
     const s=(ARENA_RADIUS*2)/Math.max(size.x,size.z,1e-3); m.scale.setScalar(s);
     box=new THREE.Box3().setFromObject(m); m.position.y-=box.min.y;
@@ -1235,7 +1236,8 @@ function initThree(){
   scene=new THREE.Scene();
   camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.01,30);
   scene.add(new THREE.HemisphereLight(0xeaf2ff,0x3a4452,0.5));   // fill lembut
-  keyLight=new THREE.DirectionalLight(0xfff4e2,2.0); keyLight.position.set(.6,1.4,.5);  // key untuk kontras
+  const rim=new THREE.DirectionalLight(0x9fc4ff,0.6); rim.position.set(-.7,.8,-.6); scene.add(rim);  // rim dingin (cinematic)
+  keyLight=new THREE.DirectionalLight(0xfff4e2,2.2); keyLight.position.set(.6,1.4,.5);  // key untuk kontras
   keyLight.castShadow=true; keyLight.shadow.mapSize.set(1024,1024);
   keyLight.shadow.camera.near=0.05; keyLight.shadow.camera.far=5;
   keyLight.shadow.camera.left=-1.4; keyLight.shadow.camera.right=1.4; keyLight.shadow.camera.top=1.4; keyLight.shadow.camera.bottom=-1.4;
@@ -1243,7 +1245,7 @@ function initThree(){
   scene.add(keyLight); scene.add(keyLight.target);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
   renderer.setPixelRatio(devicePixelRatio); renderer.setSize(innerWidth,innerHeight);
-  renderer.xr.enabled=true; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.92;
+  renderer.xr.enabled=true; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.02;
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
   // env hanya untuk pantulan halus (intensitas rendah lewat material), bukan flat fill
@@ -1380,8 +1382,10 @@ async function placeCar(refMatrixObj){
 
 async function startDriving(){
   if(building) return;
-  if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; scene.add(car); building=false; }
+  if(!car){ building=true; car=await buildCar(myCarColor); frontWheels=car.userData.front||[]; allWheels=car.userData.all||[]; car.traverse(o=>{if(o.isMesh)o.castShadow=true;}); scene.add(car); building=false; }
   car.position.copy(arenaCenter); heading=0; speed=0; car.rotation.order='YXZ'; car.rotation.set(0,0,0); car.visible=true; carPlaced=true; carY=0;vy=0;airborne=false;onRamp=false;carPitch=0;
+  if(arenaSpawn){ const ay=(calib&&calib.yaw)||0, sx=(arenaSpawn.x||0)*ARENA_RADIUS, sz=(arenaSpawn.z||0)*ARENA_RADIUS;
+    car.position.x+=sx*Math.cos(ay)+sz*Math.sin(ay); car.position.z+=-sx*Math.sin(ay)+sz*Math.cos(ay); heading=(arenaSpawn.yaw||0)+ay; }   // spawn di garis start arena preset (ikut rotasi kalibrasi)
   if(shadowGround){ shadowGround.position.set(arenaCenter.x,arenaCenter.y+0.001,arenaCenter.z); shadowGround.visible=true; }
   if(keyLight){ keyLight.position.set(arenaCenter.x+0.6,arenaCenter.y+1.4,arenaCenter.z+0.5); keyLight.target.position.copy(arenaCenter); keyLight.target.updateMatrixWorld(); }
   ownHP=100; dead=false; eliminated=false; myScore=0; nitro=100; shieldUntil=0; updateHpBar(); updateNitroBar();
@@ -1537,6 +1541,29 @@ function collideArenaMesh(){
     if(r.length && r[0].distance<CAR_R){ const push=CAR_R-r[0].distance; car.position.x-=d.x*push; car.position.z-=d.z*push; hit=true; }
   }
   if(hit) speed*=0.5;
+}
+const _DOWN=new THREE.Vector3(0,-1,0); const _nrm=new THREE.Vector3();
+const DRIVE_MATS=new Set(['Cube','Mat.1','Mat.2','Mat.2_0','Mat.2_1','Mat.4_1','Mat.12']);  // aspal + strip start
+function floorHeightAt(x,z){                    // {h: tinggi (rel arenaCenter.y), ok: aspal+datar+ada lantai}
+  if(!arenaModel) return {h:0,ok:true};
+  _corigin.set(x, arenaCenter.y+carY+0.2, z); _ray.set(_corigin,_DOWN); _ray.far=0.7;   // dari tepat di atas kart (bukan langit) -> ga kena banner/gantry di atas
+  const r=_ray.intersectObject(arenaModel,true);
+  if(!r.length) return {h:0,ok:false};                       // ga ada lantai = tepi/jurang
+  const hit=r[0]; let flat=true;
+  if(hit.face){ _nrm.copy(hit.face.normal).transformDirection(hit.object.matrixWorld); flat=_nrm.y>0.6; } // miring = curb/tembok
+  const driv=hit.object.userData.drivable!==false;
+  return {h:hit.point.y-arenaCenter.y, ok: driv && flat};
+}
+let carShadow=null;
+function makeBlobShadow(){
+  const cv=document.createElement('canvas'); cv.width=cv.height=128;
+  const ctx=cv.getContext('2d'); const g=ctx.createRadialGradient(64,64,4,64,64,62);
+  g.addColorStop(0,'rgba(0,0,0,0.5)'); g.addColorStop(0.55,'rgba(0,0,0,0.25)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,128,128);
+  const tex=new THREE.CanvasTexture(cv);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(CAR_R*4.4,CAR_R*4.4),
+    new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,opacity:0.9}));
+  mesh.rotation.x=-Math.PI/2; mesh.renderOrder=2; mesh.visible=false; scene.add(mesh); return mesh;
 }
 function explodeBarrel(o,atSpeed){
   spawnFlash(o.position);
@@ -2088,6 +2115,18 @@ function driveCar(dt){
     if(!eliminated && outsideArena(car.position.x,car.position.z,0.03)){ spawnBurst(car.position,0xffd24a,20,1.2); handleKO(); return; }
   } else { const c=clampArena(car.position.x,car.position.z,CAR_R); if(c.hit){ car.position.x=c.x; car.position.z=c.z; speed*=-0.35; } }
   // ---- vertical physics: ramp + jump (gravity) ----
+  if(arenaCollide && arenaModel){               // arena GLB: cuma boleh di aspal, bisa nyusur tembok, ga jatuh keluar
+    const UP=0.03, DOWN=0.06;                    // ambang curb (naik) & tepi (turun)
+    const okF=(f)=> f.ok && f.h<=carY+UP && f.h>=carY-DOWN;
+    const f=floorHeightAt(car.position.x,car.position.z);
+    if(Math.abs(speed)>0.004 && !okF(f)){
+      const fX=floorHeightAt(car.position.x,pz), fZ=floorHeightAt(px,car.position.z);
+      if(okF(fX)){ car.position.z=pz; carY+=(fX.h-carY)*Math.min(1,dt*16); }       // nyusur sumbu X
+      else if(okF(fZ)){ car.position.x=px; carY+=(fZ.h-carY)*Math.min(1,dt*16); }  // nyusur sumbu Z
+      else { car.position.x=px; car.position.z=pz; speed*=-0.2; }                   // mentok total
+    } else { carY += (f.h-carY)*Math.min(1,dt*16); }
+    onRamp=false; car.position.y=arenaCenter.y+carY;
+  } else {
   const gnd=groundHeightAt(car.position.x,car.position.z);
   if(airborne){
     carY+=vy*dt; vy-=GRAV*dt;
@@ -2106,6 +2145,7 @@ function driveCar(dt){
     }
   }
   car.position.y=arenaCenter.y+carY;
+  }
   let pitchTarget = airborne ? Math.max(-0.55,Math.min(0.55,-vy*1.6)) : (onRamp? -lastRampAng : 0);
   carPitch += (pitchTarget-carPitch)*Math.min(1,dt*10);
   // obstacle collision (ban = bumper, tong api = MELEDAK; lompati kalau lagi terbang di atasnya)
@@ -2175,8 +2215,12 @@ function driveCar(dt){
       }
     }
   }
-  collideArenaMesh();
+  // collideArenaMesh();  // diganti whitelist lantai (anti-macet di passage sempit)
   car.rotation.set(carPitch, heading, 0);
+  if(carShadow){ carShadow.visible=car.visible&&carPlaced;
+    const groundY=arenaCenter.y+((arenaCollide&&arenaModel)?carY:0);
+    carShadow.position.set(car.position.x,groundY+0.012,car.position.z);
+    const air=Math.max(0,car.position.y-groundY); carShadow.scale.setScalar(Math.max(0.45,1/(1+air*6))); }
   flameTick++; if((flameTick&1)===0){ for(const o of obstacles){ const f=o.userData.flame; if(f){ f.scale.y=0.75+Math.random()*0.55; f.material.opacity=0.7+Math.random()*0.3; } } }
   if(!airborne && Math.abs(speed)>0.12 && (flameTick%3===0))   // debu dari ban pas jalan
     spawnDust(car.position.x-Math.sin(heading)*0.07, car.position.z-Math.cos(heading)*0.07);
